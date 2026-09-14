@@ -14,5 +14,10 @@
                 <div class="small mt-2">Conserva este código. También podemos localizarlo por nombre y teléfono.</div>
             </div>
         </xpath>
+        <xpath expr="//div[contains(@class, 'paymentlines')]" position="inside">
+            <div t-if="line.leyka_credit_code" class="small text-start">
+                Vale: <span t-out="line.leyka_credit_code"/>
+            </div>
+        </xpath>
     </t>
 </templates>

@@ -7,7 +7,7 @@ Suite modular para la operación local de Leyka Motors en Odoo 19 Community.
 | Módulo | Función | Estado |
 |---|---|---|
 | `leyka_local_core` | Titulares simples, vales, saldos y auditoría | Implementado |
-| `leyka_pos_exchange` | Cambio en una orden, diferencias, vales nominativos e impresión automática | Integración POS en pruebas |
+| `leyka_pos_exchange` | Cambios, diferencias, vales nominativos, impresión y canje por código/nombre/teléfono | Integración POS en pruebas |
 | `leyka_cfdi_purchase` | Importación XML/ZIP y factura de proveedor borrador | Primera versión |
 | Conciliación y control fiscal | POS, Mercado Pago, Stori, IVA e ISR estimado | Siguiente fase |
 | Mercado Libre | Pedidos, comisiones y conciliación | Fase final |
