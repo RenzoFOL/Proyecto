@@ -22,6 +22,10 @@ class PosConfig(models.Model):
         domain="[('type', '=', 'service')]",
         help="Producto sin impuestos usado para equilibrar la orden cuando queda saldo a favor del cliente.",
         copy=False,
+        default=lambda self: self.env.ref(
+            "leyka_pos_exchange.product_leyka_store_credit",
+            raise_if_not_found=False,
+        ),
     )
 
     @api.model

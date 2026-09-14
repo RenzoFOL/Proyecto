@@ -115,5 +115,5 @@ jobs:
             --addons-path=/tmp/odoo19/addons,${GITHUB_WORKSPACE}/addons \
             --init=leyka_local_core,leyka_pos_exchange,leyka_cfdi_purchase \
             --test-enable \
-            --test-tags=/leyka_local_core,/leyka_cfdi_purchase \
+            --test-tags=/leyka_local_core,/leyka_pos_exchange,/leyka_cfdi_purchase \
             --log-level=test

@@ -1,7 +1,7 @@
 {
     "name": "Leyka POS Cambios y Vales",
     "summary": "Cambios, devoluciones, garantías y vales para tienda local",
-    "version": "19.0.2.1.0",
+    "version": "19.0.2.2.0",
     "category": "Point of Sale",
     "author": "Leyka Motors",
     "license": "LGPL-3",
