@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import ast
 import pathlib
-import py_compile
 import sys
 
 from lxml import etree
@@ -47,9 +46,9 @@ for manifest_path in sorted(ADDONS.glob("*/__manifest__.py")):
 
 for python_path in sorted(ADDONS.rglob("*.py")):
     try:
-        py_compile.compile(str(python_path), doraise=True)
-    except py_compile.PyCompileError as error:
-        fail(str(error))
+        ast.parse(python_path.read_text(encoding="utf-8"), filename=str(python_path))
+    except (SyntaxError, UnicodeError) as error:
+        fail(f"{python_path}: {error}")
 
 
 safe_parser = etree.XMLParser(
