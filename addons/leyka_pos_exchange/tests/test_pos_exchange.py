@@ -17,11 +17,17 @@ class TestLeykaPosExchange(CommonPosTest):
         product_category = self.env["product.category"].create(
             {"name": "Categoría prueba Leyka"}
         )
-        self.product = self.create_product(
-            "Relay Leyka",
-            product_category,
-            100.0,
-            60.0,
+        self.product = self.env["product.product"].create(
+            {
+                "name": "Relay Leyka",
+                "available_in_pos": True,
+                "type": "consu",
+                "is_storable": True,
+                "categ_id": product_category.id,
+                "list_price": 100.0,
+                "standard_price": 60.0,
+                "taxes_id": [Command.clear()],
+            }
         )
         self.open_new_session()
 
