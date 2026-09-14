@@ -1,0 +1,50 @@
+name: Verificar y empaquetar Odoo 19
+
+on:
+  push:
+    branches:
+      - main
+      - codex/leyka-local-suite-v0.1
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar validador XML
+        run: python -m pip install --disable-pip-version-check lxml
+
+      - name: Validar Python, XML y manifiestos
+        run: python scripts/check_addons.py
+
+      - name: Crear paquetes instalables
+        run: |
+          mkdir -p dist/suite
+          cp -R addons/leyka_local_core dist/suite/
+          cp -R addons/leyka_pos_exchange dist/suite/
+          cp -R addons/leyka_cfdi_purchase dist/suite/
+          cd dist/suite
+          zip -r ../Leyka_Local_Suite_Odoo19.zip .
+          cd ../..
+          for module in leyka_local_core leyka_pos_exchange leyka_cfdi_purchase; do
+            (cd addons && zip -r "../dist/${module}_Odoo19.zip" "${module}")
+          done
+
+      - name: Publicar ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: Leyka-Local-Suite-Odoo19
+          path: dist/*.zip
+          if-no-files-found: error
