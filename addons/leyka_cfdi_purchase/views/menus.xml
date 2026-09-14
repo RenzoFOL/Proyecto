@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_leyka_purchases" name="Compras y CFDI" parent="leyka_local_core.menu_leyka_root" sequence="20"/>
+    <menuitem id="menu_leyka_cfdi_import" name="Importar XML/ZIP" parent="menu_leyka_purchases" action="action_leyka_cfdi_import_wizard" sequence="10"/>
+    <menuitem id="menu_leyka_cfdi_purchase" name="CFDI importados" parent="menu_leyka_purchases" action="action_leyka_cfdi_purchase" sequence="20"/>
+</odoo>
