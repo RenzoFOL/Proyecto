@@ -30,7 +30,7 @@
                 <field name="classification"/>
                 <filter name="review" string="Por revisar" domain="[('state', '=', 'review')]"/>
                 <filter name="billed" string="Con factura" domain="[('state', '=', 'billed')]"/>
-                <group string="Agrupar">
+                <group>
                     <filter name="group_issuer" string="Proveedor" context="{'group_by': 'issuer_rfc'}"/>
                     <filter name="group_classification" string="Clasificación" context="{'group_by': 'classification'}"/>
                     <filter name="group_month" string="Mes" context="{'group_by': 'invoice_date:month'}"/>
