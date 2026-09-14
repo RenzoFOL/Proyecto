@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_leyka_return_operator,Solicitud operador,model_leyka_return_request,leyka_local_core.group_leyka_operator,1,1,1,0
+access_leyka_return_manager,Solicitud responsable,model_leyka_return_request,leyka_local_core.group_leyka_manager,1,1,1,1
+access_leyka_return_line_operator,Línea operador,model_leyka_return_request_line,leyka_local_core.group_leyka_operator,1,1,1,0
+access_leyka_return_line_manager,Línea responsable,model_leyka_return_request_line,leyka_local_core.group_leyka_manager,1,1,1,1

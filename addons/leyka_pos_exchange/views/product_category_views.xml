@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="product_category_form_leyka_return" model="ir.ui.view">
+        <field name="name">product.category.form.leyka.return</field>
+        <field name="model">product.category</field>
+        <field name="inherit_id" ref="product.product_category_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group" position="inside">
+                <group string="Política de cambios Leyka">
+                    <field name="leyka_allow_return"/>
+                    <field name="leyka_return_days" invisible="not leyka_allow_return"/>
+                    <field name="leyka_requires_unopened" invisible="not leyka_allow_return"/>
+                    <field name="leyka_default_disposition" invisible="not leyka_allow_return"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>
