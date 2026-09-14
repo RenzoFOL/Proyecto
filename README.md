@@ -7,7 +7,7 @@ Suite modular para la operación local de Leyka Motors en Odoo 19 Community.
 | Módulo | Función | Estado |
 |---|---|---|
 | `leyka_local_core` | Titulares simples, vales, saldos y auditoría | Implementado |
-| `leyka_pos_exchange` | Cambios, devoluciones, garantías y destinos de inventario | Primera versión |
+| `leyka_pos_exchange` | Cambio en una orden, diferencias, vales nominativos e impresión automática | Integración POS en pruebas |
 | `leyka_cfdi_purchase` | Importación XML/ZIP y factura de proveedor borrador | Primera versión |
 | Conciliación y control fiscal | POS, Mercado Pago, Stori, IVA e ISR estimado | Siguiente fase |
 | Mercado Libre | Pedidos, comisiones y conciliación | Fase final |
@@ -20,6 +20,7 @@ Suite modular para la operación local de Leyka Motors en Odoo 19 Community.
 - Ningún token, contraseña, RFC real ni clave fiscal dentro del repositorio.
 - Las cifras fiscales serán auxiliares de control y conciliación; no sustituyen la revisión del contador.
 - Todo movimiento de vales, cambios y ajustes queda auditado.
+- En la tienda local no se devuelve efectivo: el flujo normal termina en cambio o vale.
 
 ## Instalación de desarrollo
 
@@ -28,6 +29,7 @@ Suite modular para la operación local de Leyka Motors en Odoo 19 Community.
 3. Activa modo desarrollador y actualiza la lista de aplicaciones.
 4. Instala primero **Leyka Local Core**, después **Leyka POS Cambios y Vales** y **Leyka Compras CFDI**.
 5. Asigna al personal los grupos **Operador Leyka** o **Responsable Leyka**.
+6. En cada POS verifica el producto técnico **Vale Leyka emitido** y cierra/abre la sesión para recargar los recursos.
 
 Los ZIP generados por GitHub Actions se publican en el artefacto **Leyka-Local-Suite-Odoo19**.
 
@@ -35,4 +37,4 @@ Los ZIP generados por GitHub Actions se publican en el artefacto **Leyka-Local-S
 
 `codex/leyka-local-suite-v0.1`
 
-No se debe usar en producción hasta que las pruebas de instalación, permisos, POS e inventario terminen correctamente.
+No se debe usar en producción hasta que las pruebas de instalación, permisos, POS, inventario y contabilidad terminen correctamente.

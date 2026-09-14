@@ -23,11 +23,19 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Preparar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
       - name: Instalar validador XML
         run: python -m pip install --disable-pip-version-check lxml
 
       - name: Validar Python, XML y manifiestos
         run: python scripts/check_addons.py
+
+      - name: Validar sintaxis JavaScript POS
+        run: find addons -path '*/static/src/js/*.js' -print0 | xargs -0 -n1 node --check
 
       - name: Crear paquetes instalables
         run: |
@@ -96,4 +104,16 @@ jobs:
           PGUSER: odoo
           PGPASSWORD: odoo
         run: |
-          python /tmp/odoo19/odoo-bin             --stop-after-init             --without-demo=all             --database=leyka_test             --db_host=localhost             --db_port=5432             --db_user=odoo             --db_password=odoo             --addons-path=/tmp/odoo19/addons,${GITHUB_WORKSPACE}/addons             --init=leyka_local_core,leyka_pos_exchange,leyka_cfdi_purchase             --test-enable             --test-tags=/leyka_local_core,/leyka_cfdi_purchase             --log-level=test
+          python /tmp/odoo19/odoo-bin \
+            --stop-after-init \
+            --without-demo=all \
+            --database=leyka_test \
+            --db_host=localhost \
+            --db_port=5432 \
+            --db_user=odoo \
+            --db_password=odoo \
+            --addons-path=/tmp/odoo19/addons,${GITHUB_WORKSPACE}/addons \
+            --init=leyka_local_core,leyka_pos_exchange,leyka_cfdi_purchase \
+            --test-enable \
+            --test-tags=/leyka_local_core,/leyka_cfdi_purchase \
+            --log-level=test

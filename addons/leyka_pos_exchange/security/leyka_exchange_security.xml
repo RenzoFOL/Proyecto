@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="rule_leyka_return_request_company" model="ir.rule">
+        <field name="name">Cambios Leyka por compañía</field>
+        <field name="model_id" ref="model_leyka_return_request"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('leyka_local_core.group_leyka_operator')), (4, ref('leyka_local_core.group_leyka_manager'))]"/>
+    </record>
+    <record id="rule_leyka_return_line_company" model="ir.rule">
+        <field name="name">Líneas de cambio Leyka por compañía</field>
+        <field name="model_id" ref="model_leyka_return_request_line"/>
+        <field name="domain_force">[('request_id.company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('leyka_local_core.group_leyka_operator')), (4, ref('leyka_local_core.group_leyka_manager'))]"/>
+    </record>
+</odoo>

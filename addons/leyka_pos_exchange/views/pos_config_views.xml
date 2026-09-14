@@ -10,6 +10,7 @@
                     <field name="leyka_enable_changes"/>
                     <field name="leyka_require_holder" invisible="not leyka_enable_changes"/>
                     <field name="leyka_manager_refund_only" invisible="not leyka_enable_changes"/>
+                    <field name="leyka_credit_product_id" invisible="not leyka_enable_changes" options="{'no_create': True}"/>
                 </group>
             </xpath>
         </field>
