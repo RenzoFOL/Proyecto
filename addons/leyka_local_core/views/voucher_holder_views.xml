@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_leyka_voucher_holder_list" model="ir.ui.view">
+        <field name="name">leyka.voucher.holder.list</field>
+        <field name="model">leyka.voucher.holder</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="phone"/>
+                <field name="partner_id"/>
+                <field name="total_balance" sum="Saldo"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_leyka_voucher_holder_search" model="ir.ui.view">
+        <field name="name">leyka.voucher.holder.search</field>
+        <field name="model">leyka.voucher.holder</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="phone"/>
+                <field name="phone_normalized"/>
+                <field name="partner_id"/>
+                <filter name="active" string="Activos" domain="[('active', '=', True)]"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_leyka_voucher_holder_form" model="ir.ui.view">
+        <field name="name">leyka.voucher.holder.form</field>
+        <field name="model">leyka.voucher.holder</field>
+        <field name="arch" type="xml">
+            <form string="Titular simplificado">
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="Nombre completo"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="phone"/>
+                            <field name="partner_id"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                        <group>
+                            <field name="total_balance" readonly="1"/>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                    <field name="note" placeholder="Notas de identificación o validación"/>
+                    <notebook>
+                        <page string="Vales">
+                            <field name="credit_ids" readonly="1">
+                                <list>
+                                    <field name="code"/>
+                                    <field name="amount_initial"/>
+                                    <field name="balance"/>
+                                    <field name="state"/>
+                                    <field name="create_date"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_leyka_voucher_holder" model="ir.actions.act_window">
+        <field name="name">Titulares simplificados</field>
+        <field name="res_model">leyka.voucher.holder</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

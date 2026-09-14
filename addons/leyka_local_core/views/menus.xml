@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_leyka_root" name="Leyka Operación" sequence="60" groups="leyka_local_core.group_leyka_operator"/>
+    <menuitem id="menu_leyka_vouchers" name="Cambios y vales" parent="menu_leyka_root" sequence="10"/>
+    <menuitem id="menu_leyka_store_credit" name="Vales de tienda" parent="menu_leyka_vouchers" action="action_leyka_store_credit" sequence="10"/>
+    <menuitem id="menu_leyka_voucher_holder" name="Titulares simplificados" parent="menu_leyka_vouchers" action="action_leyka_voucher_holder" sequence="20"/>
+</odoo>

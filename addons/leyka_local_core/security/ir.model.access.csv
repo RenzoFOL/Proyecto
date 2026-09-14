@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_leyka_holder_operator,Titular operador,model_leyka_voucher_holder,leyka_local_core.group_leyka_operator,1,1,1,0
+access_leyka_holder_manager,Titular responsable,model_leyka_voucher_holder,leyka_local_core.group_leyka_manager,1,1,1,1
+access_leyka_credit_operator,Vale operador,model_leyka_store_credit,leyka_local_core.group_leyka_operator,1,0,0,0
+access_leyka_credit_manager,Vale responsable,model_leyka_store_credit,leyka_local_core.group_leyka_manager,1,1,1,0
+access_leyka_transaction_operator,Movimiento operador,model_leyka_store_credit_transaction,leyka_local_core.group_leyka_operator,1,0,0,0
+access_leyka_transaction_manager,Movimiento responsable,model_leyka_store_credit_transaction,leyka_local_core.group_leyka_manager,1,0,0,0
