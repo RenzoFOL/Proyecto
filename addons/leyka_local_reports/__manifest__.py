@@ -1,0 +1,1 @@
+{'name': 'Leyka Resumen de Tienda', 'version': '19.0.1.0.0', 'license': 'LGPL-3', 'author': 'Leyka Motors', 'depends': ['leyka_purchase_stock', 'leyka_store_credit_account'], 'data': ['views/views.xml'], 'installable': True, 'application': False}

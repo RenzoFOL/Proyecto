@@ -1,3 +1,5 @@
+> Etapa 2: se agregan Leyka Compras e Inventario, Leyka Contabilidad de Vales y Leyka Resumen de Tienda. Consulta [ETAPA_2_OPERACION_LOCAL.md](ETAPA_2_OPERACION_LOCAL.md).
+
 # Leyka Motors — Suite Odoo 19 Community
 
 Suite modular para la operación local de Leyka Motors en Odoo 19 Community.

@@ -46,11 +46,14 @@ jobs:
           cp -R addons/leyka_local_core dist/suite/
           cp -R addons/leyka_pos_exchange dist/suite/
           cp -R addons/leyka_cfdi_purchase dist/suite/
+          cp -R addons/leyka_purchase_stock dist/suite/
+          cp -R addons/leyka_store_credit_account dist/suite/
+          cp -R addons/leyka_local_reports dist/suite/
           find dist -type d -name __pycache__ -prune -exec rm -rf {} +
           cd dist/suite
           zip -r ../Leyka_Local_Suite_Odoo19.zip .
           cd ../..
-          for module in leyka_local_core leyka_pos_exchange leyka_cfdi_purchase; do
+          for module in leyka_local_core leyka_pos_exchange leyka_cfdi_purchase leyka_purchase_stock leyka_store_credit_account leyka_local_reports; do
             (cd addons && zip -r "../dist/${module}_Odoo19.zip" "${module}" -x "*/__pycache__/*" "*.pyc")
           done
 
@@ -116,9 +119,9 @@ jobs:
             --db_user=odoo \
             --db_password=odoo \
             --addons-path=/tmp/odoo19/addons,${GITHUB_WORKSPACE}/addons \
-            --init=leyka_local_core,leyka_pos_exchange,leyka_cfdi_purchase \
+            --init=leyka_local_core,leyka_pos_exchange,leyka_cfdi_purchase,leyka_purchase_stock,leyka_store_credit_account,leyka_local_reports \
             --test-enable \
-            --test-tags=/leyka_local_core,/leyka_pos_exchange,/leyka_cfdi_purchase \
+            --test-tags=/leyka_local_core,/leyka_pos_exchange,/leyka_cfdi_purchase,/leyka_purchase_stock,/leyka_store_credit_account,/leyka_local_reports \
             --log-level=test
 
   windows-installer:

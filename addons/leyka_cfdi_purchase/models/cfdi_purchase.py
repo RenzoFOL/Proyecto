@@ -392,20 +392,9 @@ class LeykaCfdiPurchase(models.Model):
                 if line.line_subtotal
                 else 0.0
             )
-            invoice_lines.append(
-                (
-                    0,
-                    0,
-                    {
-                        "product_id": product.id,
-                        "name": line.description,
-                        "quantity": line.quantity,
-                        "price_unit": line.unit_price,
-                        "discount": discount_percent,
-                        "tax_ids": [(6, 0, tax.ids)],
-                    },
-                )
-            )
+            invoice_lines.append((0, 0, self._prepare_leyka_bill_line(
+                line, product, tax, discount_percent
+            )))
         bill = self.env["account.move"].create(
             {
                 "move_type": "in_refund" if self.document_type == "E" else "in_invoice",
@@ -426,6 +415,16 @@ class LeykaCfdiPurchase(models.Model):
             "res_id": bill.id,
             "view_mode": "form",
             "target": "current",
+        }
+
+    def _prepare_leyka_bill_line(self, line, product, tax, discount_percent):
+        return {
+            "product_id": product.id,
+            "name": line.description,
+            "quantity": line.quantity,
+            "price_unit": line.unit_price,
+            "discount": discount_percent,
+            "tax_ids": [(6, 0, tax.ids)],
         }
 
 

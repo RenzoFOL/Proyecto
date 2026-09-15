@@ -1,3 +1,5 @@
+> Actualización: ver ETAPA_2_OPERACION_LOCAL.md para los tres módulos nuevos de compras/inventario, contabilidad de vales y resumen. Los límites de esta primera etapa que se detallan abajo corresponden a la entrega anterior.
+
 # Leyka · entrega de desarrollo 19.0.3
 
 ## Incluido

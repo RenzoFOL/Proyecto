@@ -9,7 +9,7 @@ import zipfile
 from datetime import datetime
 from pathlib import Path, PurePosixPath
 
-MODULES = ("leyka_local_core", "leyka_pos_exchange", "leyka_cfdi_purchase")
+MODULES = ('leyka_local_core', 'leyka_pos_exchange', 'leyka_cfdi_purchase', 'leyka_purchase_stock', 'leyka_store_credit_account', 'leyka_local_reports')
 
 
 def bundled_archive():
@@ -103,9 +103,9 @@ def main():
     frame.pack(fill="both", expand=True)
     ttk.Label(frame, text="Leyka · Tienda local", font=("Segoe UI", 20, "bold")).pack(anchor="w")
     ttk.Label(frame, wraplength=640, text=(
-        "Instala los módulos de cambios y vales, titulares y compras XML. "
+        "Instala los módulos de cambios y vales, titulares, compras XML, inventario, contabilidad de vales y resumen de tienda. "
         "Selecciona una carpeta incluida en addons_path de tu Odoo 19 Community. "
-        "Conservaremos un respaldo de las versiones anteriores de estos tres módulos."
+        "Conservaremos un respaldo de las versiones anteriores de estos seis módulos."
     )).pack(anchor="w", pady=(12, 18))
     location = tk.StringVar()
     ttk.Entry(frame, textvariable=location, width=84).pack(fill="x")
@@ -130,7 +130,7 @@ def main():
         status.set("Archivos instalados. Respaldo: " + str(backup))
         messagebox.showinfo("Archivos instalados", (
             "Reinicia el servicio Odoo. En modo desarrollador, actualiza la lista de aplicaciones.\n\n"
-            "Instala/actualiza en este orden: Leyka Base Local, Leyka POS Cambios y Vales, Leyka Compras CFDI.\n\n"
+            "Instala/actualiza en este orden: Leyka Base Local, Leyka POS Cambios y Vales, Leyka Compras CFDI, Leyka Compras e Inventario, Leyka Contabilidad de Vales, Leyka Resumen de Tienda.\n\n"
             "Esta versión requiere pruebas en una copia de tu base antes de usarla en caja."
         ))
 

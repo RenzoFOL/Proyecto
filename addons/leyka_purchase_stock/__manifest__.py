@@ -1,0 +1,1 @@
+{'name': 'Leyka Compras e Inventario', 'version': '19.0.1.0.0', 'license': 'LGPL-3', 'author': 'Leyka Motors', 'depends': ['leyka_cfdi_purchase', 'purchase_stock'], 'data': ['views/views.xml'], 'installable': True, 'application': False}
