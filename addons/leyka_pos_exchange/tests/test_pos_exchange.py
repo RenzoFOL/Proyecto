@@ -42,7 +42,7 @@ class TestLeykaPosExchange(TestPoSCommon):
         self.env["pos.order"].sync_from_ui([data])
         return self.env["pos.order"].search([("uuid", "=", data["uuid"])], limit=1)
 
-    def _make_exchange(self, disposition="resalable"):
+    def _make_exchange(self, disposition="resalable", replacement_amount=0.0):
         original_data = self.create_ui_order_data([(self.product, 1)])
         original = self._sync_order(original_data)
         original_line = original.lines
@@ -55,27 +55,38 @@ class TestLeykaPosExchange(TestPoSCommon):
             "disposition": disposition,
             "stage": "prepared",
         }
-        refund_data = self.create_ui_order_data(
-            [
+        lines = [
                 {
                     "product": self.product,
                     "quantity": -1,
                     "refunded_orderline_id": original_line.id,
-                },
-                {
+                }
+        ]
+        credit_amount = max(0.0, 100.0 - replacement_amount)
+        if credit_amount:
+            lines.append({
                     "product": credit_product,
                     "quantity": 1,
-                    "price_unit": 100.0,
-                    "price_subtotal": 100.0,
-                    "price_subtotal_incl": 100.0,
+                    "price_unit": credit_amount,
+                    "price_subtotal": credit_amount,
+                    "price_subtotal_incl": credit_amount,
                     "tax_ids": [Command.clear()],
-                },
-            ],
+            })
+        if replacement_amount:
+            lines.append({
+                "product": self.product, "quantity": 1,
+                "price_unit": replacement_amount,
+                "price_subtotal": replacement_amount,
+                "price_subtotal_incl": replacement_amount,
+            })
+        refund_data = self.create_ui_order_data(
+            lines,
             pos_order_ui_args={
-                "is_refund": True,
+                "is_refund": False,
                 "leyka_exchange_payload": payload,
             },
-            payments=[],
+            payments=[(self.cash_payment_method, replacement_amount - 100.0)]
+            if replacement_amount > 100.0 else [],
         )
         refund_order = self._sync_order(refund_data)
 
@@ -83,6 +94,18 @@ class TestLeykaPosExchange(TestPoSCommon):
             refund_order.id, payload
         )
         return refund_order, payload, result
+
+    def test_exchange_collects_only_positive_difference(self):
+        order, payload, result = self._make_exchange(replacement_amount=120.0)
+        self.assertFalse(order.is_refund)
+        self.assertEqual(order.amount_total, 20.0)
+        self.assertEqual(sum(order.payment_ids.mapped("amount")), 20.0)
+        self.assertFalse(result["credit_code"])
+
+    def test_smaller_exchange_issues_only_remaining_credit(self):
+        order, payload, result = self._make_exchange(replacement_amount=80.0)
+        self.assertEqual(order.amount_total, 0.0)
+        self.assertEqual(result["credit_amount"], 20.0)
 
     def test_exchange_issues_idempotent_named_credit(self):
         refund_order, payload, result = self._make_exchange()

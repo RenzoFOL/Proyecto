@@ -33,6 +33,9 @@ patch(TicketScreen.prototype, {
         await super.addAdditionalRefundInfo(...arguments);
         if (this.props.stateOverride?.leykaChanges) {
             destinationOrder.leyka_exchange_payload = { stage: "selecting" };
+            // Refund lines retain their original links, while the difference uses
+            // the normal sale/payment flow (including card terminals).
+            destinationOrder.is_refund = false;
         }
     },
     async onDoRefund() {
