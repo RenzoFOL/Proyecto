@@ -1,12 +1,14 @@
 from odoo import Command
 from odoo.addons.point_of_sale.tests.common import TestPoSCommon
 from odoo.tests import tagged
+from odoo.exceptions import UserError, ValidationError
 
 
 @tagged("post_install", "-at_install")
 class TestLeykaPosExchange(TestPoSCommon):
     def setUp(self):
         super().setUp()
+        self.env.user.group_ids |= self.env.ref("leyka_local_core.group_leyka_manager")
         self.config = self.basic_config
         self.bank_payment_method = self.bank_pm1
         self.cash_payment_method = self.cash_pm1
@@ -31,13 +33,16 @@ class TestLeykaPosExchange(TestPoSCommon):
                 "taxes_id": [Command.clear()],
             }
         )
+        self.env["stock.quant"].sudo()._update_available_quantity(
+            self.product, self.config.picking_type_id.default_location_src_id, 10.0
+        )
         self.open_new_session()
 
     def _sync_order(self, data):
         self.env["pos.order"].sync_from_ui([data])
         return self.env["pos.order"].search([("uuid", "=", data["uuid"])], limit=1)
 
-    def test_exchange_issues_idempotent_named_credit(self):
+    def _make_exchange(self, disposition="resalable"):
         original_data = self.create_ui_order_data([(self.product, 1)])
         original = self._sync_order(original_data)
         original_line = original.lines
@@ -47,7 +52,7 @@ class TestLeykaPosExchange(TestPoSCommon):
             "holder_phone": "55 1234 5678",
             "reason": "change_mind",
             "physical_condition": "unopened",
-            "disposition": "resalable",
+            "disposition": disposition,
             "stage": "prepared",
         }
         refund_data = self.create_ui_order_data(
@@ -77,6 +82,10 @@ class TestLeykaPosExchange(TestPoSCommon):
         result = self.env["leyka.return.request"].finalize_from_pos(
             refund_order.id, payload
         )
+        return refund_order, payload, result
+
+    def test_exchange_issues_idempotent_named_credit(self):
+        refund_order, payload, result = self._make_exchange()
         repeated = self.env["leyka.return.request"].finalize_from_pos(
             refund_order.id, payload
         )
@@ -90,6 +99,43 @@ class TestLeykaPosExchange(TestPoSCommon):
             ),
             1,
         )
+
+    def test_damaged_return_routes_once(self):
+        refund_order, payload, result = self._make_exchange("damaged")
+        request = self.env["leyka.return.request"].browse(result["return_request_id"])
+        request.action_route_returned_stock()
+        request.action_route_returned_stock()
+        self.assertEqual(request.stock_routing_state, "done")
+        self.assertEqual(len(request.routing_picking_ids), 1)
+        self.assertEqual(request.routing_picking_ids.state, "done")
+        self.assertEqual(request.routing_picking_ids.location_dest_id,
+                         self.config.leyka_damaged_location_id)
+        self.assertEqual(request.routing_picking_ids.move_ids.quantity, 1)
+
+    def test_credit_failure_rolls_back_sale(self):
+        holder = self.env["leyka.voucher.holder"].create(
+            {"name": "Saldo limitado", "phone": "5511112234"}
+        )
+        credit = self.env["leyka.store.credit"].create(
+            {"holder_id": holder.id, "amount_initial": 20.0}
+        )
+        data = self.create_ui_order_data(
+            [(self.product, 1)],
+            payments=[(self.bank_payment_method, 40.0), (self.cash_payment_method, 60.0)],
+        )
+        data["payment_ids"][0][2]["leyka_credit_code"] = credit.code
+        order_uuid = data["uuid"]
+        with self.assertRaises(UserError), self.env.cr.savepoint():
+            self._sync_order(data)
+        self.assertFalse(self.env["pos.order"].search([("uuid", "=", order_uuid)]))
+        self.assertEqual(credit.balance, 20.0)
+
+    def test_missing_voucher_code_rejects_sale(self):
+        data = self.create_ui_order_data(
+            [(self.product, 1)], payments=[(self.bank_payment_method, 100.0)]
+        )
+        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+            self._sync_order(data)
 
     def test_credit_redemption_is_idempotent(self):
         holder = self.env["leyka.voucher.holder"].create(

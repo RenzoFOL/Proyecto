@@ -13,6 +13,7 @@
                 <field name="request_type"/>
                 <field name="amount" sum="Total devuelto"/>
                 <field name="credit_amount" sum="Total en vales"/>
+                <field name="stock_routing_state" widget="badge"/>
                 <field name="state" widget="badge"/>
             </list>
         </field>
@@ -30,6 +31,7 @@
                     <button name="action_mark_refunded" type="object" string="Registrar reembolso" invisible="state != 'validated' or request_type != 'refund'" groups="leyka_local_core.group_leyka_manager"/>
                     <button name="action_reject" type="object" string="Rechazar" invisible="state != 'draft'"/>
                     <button name="action_cancel" type="object" string="Cancelar" invisible="state in ('credit', 'refund', 'cancelled')"/>
+                    <button name="action_route_returned_stock" type="object" string="Clasificar inventario" invisible="stock_routing_state != 'pending'"/>
                     <field name="state" widget="statusbar"/>
                 </header>
                 <sheet>
@@ -49,6 +51,7 @@
                             <field name="credit_id"/>
                             <field name="validated_by_id"/>
                             <field name="validated_at"/>
+                            <field name="stock_routing_state" widget="badge"/>
                         </group>
                     </group>
                     <field name="line_ids" readonly="state != 'draft'">
@@ -61,6 +64,16 @@
                             <field name="physical_condition"/>
                             <field name="disposition"/>
                             <field name="condition_note"/>
+                            <field name="stock_routing_state" widget="badge"/>
+                            <field name="routing_picking_id" optional="hide"/>
+                        </list>
+                    </field>
+                    <field name="routing_picking_ids" readonly="1">
+                        <list>
+                            <field name="name"/>
+                            <field name="location_id"/>
+                            <field name="location_dest_id"/>
+                            <field name="state" widget="badge"/>
                         </list>
                     </field>
                     <group>

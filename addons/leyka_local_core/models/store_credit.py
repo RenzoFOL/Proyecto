@@ -77,19 +77,13 @@ class LeykaStoreCredit(models.Model):
         copy=False,
     )
 
-    _sql_constraints = [
-        ("leyka_store_credit_code_uniq", "unique(code)", "El código del vale ya existe."),
-        (
-            "leyka_store_credit_initial_positive",
-            "CHECK(amount_initial > 0)",
-            "El importe inicial debe ser mayor que cero.",
-        ),
-        (
-            "leyka_store_credit_balance_nonnegative",
-            "CHECK(balance >= 0)",
-            "El saldo del vale no puede ser negativo.",
-        ),
-    ]
+    _code_uniq = models.Constraint("unique(code)", "El código del vale ya existe.")
+    _initial_positive = models.Constraint(
+        "CHECK(amount_initial > 0)", "El importe inicial debe ser mayor que cero."
+    )
+    _balance_nonnegative = models.Constraint(
+        "CHECK(balance >= 0)", "El saldo del vale no puede ser negativo."
+    )
 
     @api.depends("active", "balance", "expiration_date")
     def _compute_state(self):
@@ -136,6 +130,7 @@ class LeykaStoreCredit(models.Model):
 
     def _lock_and_read_balance(self):
         self.ensure_one()
+        self.flush_recordset(["balance", "active"])
         self.env.cr.execute(
             "SELECT balance, active FROM leyka_store_credit WHERE id = %s FOR UPDATE",
             [self.id],
@@ -154,11 +149,12 @@ class LeykaStoreCredit(models.Model):
 
     def apply_movement(self, amount, operation, pos_order=None, note=None):
         self.ensure_one()
+        self.check_access("write")
         if operation not in {"redeem", "adjustment", "refund_to_credit"}:
             raise ValidationError(_("Tipo de movimiento no permitido."))
         current_balance, active = self._lock_and_read_balance()
         self._assert_usable(active)
-        new_balance = current_balance + amount
+        new_balance = self.currency_id.round(current_balance + amount)
         if float_compare(
             new_balance,
             0.0,
@@ -196,7 +192,7 @@ class LeykaStoreCredit(models.Model):
             current_balance, active = credit._lock_and_read_balance()
             if not active:
                 continue
-            credit.write({"active": False})
+            credit.write({"active": False, "balance": 0.0})
             self.env["leyka.store.credit.transaction"].sudo().create(
                 {
                     "credit_id": credit.id,
@@ -228,7 +224,7 @@ class LeykaStoreCredit(models.Model):
                 "note": _("Reposición del vale perdido %s") % self.code,
             }
         )
-        self.write({"active": False, "replaced_by_id": replacement.id})
+        self.write({"active": False, "balance": 0.0, "replaced_by_id": replacement.id})
         self.env["leyka.store.credit.transaction"].sudo().create(
             {
                 "credit_id": self.id,

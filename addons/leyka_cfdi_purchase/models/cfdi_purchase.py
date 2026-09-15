@@ -133,13 +133,9 @@ class LeykaCfdiPurchase(models.Model):
         ondelete="set null",
     )
 
-    _sql_constraints = [
-        (
-            "leyka_cfdi_uuid_company_uniq",
-            "unique(uuid, company_id)",
-            "Este UUID ya fue importado para la compañía.",
-        )
-    ]
+    _uuid_company_uniq = models.Constraint(
+        "unique(uuid, company_id)", "Este UUID ya fue importado para la compañía."
+    )
 
     @api.depends("issuer_name", "series", "folio", "uuid")
     def _compute_display_reference(self):

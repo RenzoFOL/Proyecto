@@ -1,8 +1,12 @@
+import logging
 import re
 
-from odoo import api, fields, models, _
+from odoo import Command, api, fields, models, _
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tools.float_utils import float_compare
+
+
+_logger = logging.getLogger(__name__)
 
 
 class LeykaReturnRequest(models.Model):
@@ -116,14 +120,28 @@ class LeykaReturnRequest(models.Model):
         readonly=True,
         copy=False,
     )
+    stock_routing_state = fields.Selection(
+        [
+            ("not_required", "Sin movimiento"),
+            ("pending", "Pendiente"),
+            ("manual", "Requiere lotes/series"),
+            ("done", "Clasificado"),
+        ],
+        string="Clasificación de inventario",
+        compute="_compute_stock_routing_state",
+        store=True,
+    )
+    routing_picking_ids = fields.One2many(
+        "stock.picking",
+        "leyka_return_request_id",
+        string="Movimientos de clasificación",
+        readonly=True,
+    )
 
-    _sql_constraints = [
-        (
-            "leyka_return_replacement_order_uniq",
-            "unique(replacement_order_id)",
-            "Esta orden POS ya fue procesada como cambio Leyka.",
-        ),
-    ]
+    _replacement_order_uniq = models.Constraint(
+        "unique(replacement_order_id)",
+        "Esta orden POS ya fue procesada como cambio Leyka.",
+    )
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -138,6 +156,19 @@ class LeykaReturnRequest(models.Model):
     def _compute_amount(self):
         for request in self:
             request.amount = sum(request.line_ids.mapped("return_amount"))
+
+    @api.depends("line_ids.stock_routing_state")
+    def _compute_stock_routing_state(self):
+        for request in self:
+            states = set(request.line_ids.mapped("stock_routing_state"))
+            if not states or states == {"not_required"}:
+                request.stock_routing_state = "not_required"
+            elif "manual" in states:
+                request.stock_routing_state = "manual"
+            elif "pending" in states:
+                request.stock_routing_state = "pending"
+            else:
+                request.stock_routing_state = "done"
 
     def _actor_user(self):
         actor_id = self.env.context.get("leyka_actor_user_id")
@@ -283,6 +314,124 @@ class LeykaReturnRequest(models.Model):
             request.state = "cancelled"
         return True
 
+    def _leyka_routing_location(self, disposition):
+        self.ensure_one()
+        config = self.replacement_order_id.config_id or self.pos_order_id.config_id
+        config.sudo()._leyka_ensure_stock_locations()
+        return {
+            "quarantine": config.leyka_quarantine_location_id,
+            "damaged": config.leyka_damaged_location_id,
+            "supplier_warranty": config.leyka_supplier_warranty_location_id,
+        }.get(disposition, self.env["stock.location"])
+
+    def _leyka_return_source_location(self, product):
+        self.ensure_one()
+        refund_order = self.replacement_order_id
+        returned_moves = refund_order.picking_ids.filtered(
+            lambda picking: picking.state == "done"
+            and picking.location_dest_id.usage == "internal"
+        ).move_ids.filtered(lambda move: move.product_id == product and move.quantity > 0)
+        return returned_moves[:1].location_dest_id
+
+    def action_route_returned_stock(self):
+        """Move non-resalable, untracked returns out of sellable POS stock.
+
+        The POS return picking must be finished first. Products controlled by lot or
+        serial are deliberately left for manual processing so the operator can choose
+        the exact identifiers instead of moving an arbitrary unit.
+        """
+        self.check_access("write")
+        for request in self:
+            if request.state not in ("exchange", "credit", "refund"):
+                continue
+            self.env.cr.execute(
+                "SELECT id FROM leyka_return_request WHERE id = %s FOR UPDATE", [request.id]
+            )
+            request.line_ids.invalidate_recordset(["stock_routing_state"])
+            lines = request.line_ids.filtered(
+                lambda line: line.stock_routing_state == "pending"
+            )
+            groups = {}
+            for line in lines:
+                product = line.product_id
+                if line.disposition == "resalable" or product.type != "consu" or not product.is_storable:
+                    line.stock_routing_state = "not_required"
+                    continue
+                if product.tracking != "none":
+                    line.stock_routing_state = "manual"
+                    continue
+                source = request._leyka_return_source_location(product)
+                target = request._leyka_routing_location(line.disposition)
+                if not source or not target or source == target:
+                    continue
+                key = (source.id, target.id)
+                group = groups.setdefault(key, {"source": source, "target": target, "lines": self.env["leyka.return.request.line"]})
+                group["lines"] |= line
+
+            for group in groups.values():
+                config = request.replacement_order_id.config_id or request.pos_order_id.config_id
+                picking_type = config.picking_type_id.warehouse_id.int_type_id
+                if not picking_type:
+                    _logger.warning("No internal picking type for Leyka request %s", request.name)
+                    continue
+                move_values = []
+                for product in group["lines"].product_id:
+                    quantity = sum(
+                        group["lines"].filtered(lambda line: line.product_id == product).mapped("quantity")
+                    )
+                    move_values.append(
+                        Command.create(
+                            {
+                                "product_id": product.id,
+                                "product_uom_qty": quantity,
+                                "product_uom": product.uom_id.id,
+                                "location_id": group["source"].id,
+                                "location_dest_id": group["target"].id,
+                            }
+                        )
+                    )
+                picking = self.env["stock.picking"].sudo().create(
+                    {
+                        "picking_type_id": picking_type.id,
+                        "location_id": group["source"].id,
+                        "location_dest_id": group["target"].id,
+                        "origin": _("Clasificación %(request)s", request=request.name),
+                        "company_id": request.company_id.id,
+                        "leyka_return_request_id": request.id,
+                        "move_ids": move_values,
+                    }
+                )
+                picking.action_confirm()
+                picking.action_assign()
+                if any(
+                    float_compare(move.quantity, move.product_uom_qty,
+                                  precision_rounding=move.product_uom.rounding) < 0
+                    for move in picking.move_ids
+                ):
+                    raise UserError(_("No hay existencias devueltas disponibles para clasificar."))
+                for move in picking.move_ids:
+                    move.quantity = move.product_uom_qty
+                    move.picked = True
+                picking._action_done()
+                group["lines"].sudo().write(
+                    {"stock_routing_state": "done", "routing_picking_id": picking.id}
+                )
+        return True
+
+    @api.model
+    def _cron_route_pending_stock(self):
+        pending = self.search(
+            [("stock_routing_state", "=", "pending"), ("state", "in", ("exchange", "credit", "refund"))],
+            order="id",
+            limit=100,
+        )
+        for request in pending:
+            try:
+                with self.env.cr.savepoint():
+                    request.action_route_returned_stock()
+            except Exception:
+                _logger.exception("Could not route returned stock for %s", request.name)
+
     def _pos_result(self):
         self.ensure_one()
         credit = self.credit_id
@@ -309,6 +458,12 @@ class LeykaReturnRequest(models.Model):
         refund_order = self.env["pos.order"].browse(int(refund_order_id)).exists()
         if not refund_order:
             raise UserError(_("No se encontró la orden POS del cambio."))
+        refund_order.check_access("write")
+        if refund_order.company_id not in self.env.companies:
+            raise AccessError(_("La orden pertenece a otra compañía."))
+        if refund_order.state not in ("paid", "done", "invoiced"):
+            raise ValidationError(_("Primero confirma la orden de cambio."))
+        self.env.cr.execute("SELECT id FROM pos_order WHERE id = %s FOR UPDATE", [refund_order.id])
         existing = self.sudo().search(
             [("replacement_order_id", "=", refund_order.id)], limit=1
         )
@@ -326,8 +481,13 @@ class LeykaReturnRequest(models.Model):
         if len(original_orders) != 1:
             raise UserError(_("Procesa un solo ticket original por cada cambio."))
         original_order = original_orders[0]
+        self.env.cr.execute("SELECT id FROM pos_order WHERE id = %s FOR UPDATE", [original_order.id])
         if original_order.company_id != refund_order.company_id:
             raise UserError(_("El ticket original pertenece a otra compañía."))
+        if refund_order.currency_id != refund_order.company_id.currency_id:
+            raise ValidationError(_("Los cambios Leyka requieren la moneda de la compañía."))
+        if refund_order.amount_total < 0 or any(payment.amount < 0 for payment in refund_order.payment_ids):
+            raise ValidationError(_("El cambio local debe liquidarse con mercancía o vale, sin reembolso de dinero."))
 
         name = (payload or {}).get("holder_name", "").strip()
         phone = (payload or {}).get("holder_phone", "").strip()
@@ -413,6 +573,7 @@ class LeykaReturnRequest(models.Model):
         else:
             request.action_prepare_exchange()
         refund_order.sudo().write({"leyka_return_request_id": request.id})
+        request.action_route_returned_stock()
         return request._pos_result()
 
 
@@ -466,6 +627,38 @@ class LeykaReturnRequestLine(models.Model):
         default="resalable",
     )
     condition_note = fields.Char(string="Detalle físico")
+    stock_routing_state = fields.Selection(
+        [
+            ("not_required", "Sin movimiento"),
+            ("pending", "Pendiente"),
+            ("manual", "Requiere lotes/series"),
+            ("done", "Clasificado"),
+        ],
+        default="pending",
+        required=True,
+        copy=False,
+        string="Estado de clasificación",
+    )
+    routing_picking_id = fields.Many2one(
+        "stock.picking",
+        string="Movimiento de clasificación",
+        readonly=True,
+        copy=False,
+    )
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        lines = super().create(vals_list)
+        lines.filtered(
+            lambda line: line.disposition == "resalable"
+            or line.product_id.type != "consu"
+            or not line.product_id.is_storable
+        ).write({"stock_routing_state": "not_required"})
+        lines.filtered(
+            lambda line: line.stock_routing_state == "pending"
+            and line.product_id.tracking != "none"
+        ).write({"stock_routing_state": "manual"})
+        return lines
 
     @api.depends("quantity", "order_line_id.qty", "order_line_id.price_subtotal_incl")
     def _compute_return_amount(self):
@@ -480,6 +673,20 @@ class LeykaReturnRequestLine(models.Model):
     def _onchange_order_line_id(self):
         if self.order_line_id:
             self.disposition = self.order_line_id.product_id.categ_id.leyka_default_disposition
+
+    @api.onchange("disposition", "product_id")
+    def _onchange_disposition_routing(self):
+        for line in self.filtered(lambda current: not current.routing_picking_id):
+            if (
+                line.disposition == "resalable"
+                or line.product_id.type != "consu"
+                or not line.product_id.is_storable
+            ):
+                line.stock_routing_state = "not_required"
+            elif line.product_id.tracking != "none":
+                line.stock_routing_state = "manual"
+            else:
+                line.stock_routing_state = "pending"
 
     @api.constrains("quantity")
     def _check_quantity(self):

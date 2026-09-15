@@ -6,3 +6,4 @@ from . import pos_payment_method
 from . import return_request
 from . import store_credit_pos
 from . import store_credit_transaction
+from . import stock_picking

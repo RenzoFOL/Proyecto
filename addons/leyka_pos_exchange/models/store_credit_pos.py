@@ -64,12 +64,25 @@ class LeykaStoreCreditPos(models.Model):
         order = self.env["pos.order"].browse(int(pos_order_id)).exists()
         if not order:
             raise UserError(_("No se encontró la orden POS para aplicar el vale."))
+        order.check_access("write")
+        if order.company_id not in self.env.companies:
+            raise AccessError(_("La orden pertenece a otra compañía."))
+        if order.state not in ("paid", "done", "invoiced"):
+            raise ValidationError(_("Primero confirma la venta."))
+        self.env.cr.execute("SELECT id FROM pos_order WHERE id = %s FOR UPDATE", [order.id])
         payments = order.payment_ids.filtered(
             lambda payment: payment.payment_method_id.leyka_store_credit_payment
-            and payment.leyka_credit_code
         )
+        if any(not payment.leyka_credit_code for payment in payments):
+            raise ValidationError(_("Selecciona un vale para cada pago Leyka."))
+        if len(payments.mapped("leyka_credit_code")) != len(set(payments.mapped("leyka_credit_code"))):
+            raise ValidationError(_("Usa una sola línea de pago por cada vale."))
+        if payments and (order.amount_total < 0 or any(p.amount < 0 for p in order.payment_ids)):
+            raise ValidationError(_("El canje de un vale no permite devolución de dinero."))
+        if sum(payments.mapped("amount")) > order.amount_total + order.currency_id.rounding / 2:
+            raise ValidationError(_("Los vales no pueden exceder el total de la venta."))
         results = []
-        for payment in payments:
+        for payment in payments.sorted("leyka_credit_code"):
             if payment.amount <= 0:
                 raise ValidationError(_("Un vale no puede usarse para devolver efectivo."))
             credit = self.sudo().search(
@@ -81,6 +94,9 @@ class LeykaStoreCreditPos(models.Model):
             )
             if not credit:
                 raise UserError(_("El vale %s no existe.") % payment.leyka_credit_code)
+            if credit.currency_id != order.currency_id:
+                raise ValidationError(_("El vale y la venta deben usar la misma moneda."))
+            credit._lock_and_read_balance()
             prior = self.env["leyka.store.credit.transaction"].sudo().search(
                 [
                     ("credit_id", "=", credit.id),
