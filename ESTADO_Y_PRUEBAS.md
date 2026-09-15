@@ -7,7 +7,7 @@
 - Emisión y canje en la misma transacción de base de datos que la venta. Una falla de saldo revierte el guardado de esa venta.
 - Recibo de vale con código, QR, titular y teléfono. Los datos quedan guardados para reimpresión.
 - Clasificación de devolución sin lote/serie hacia ubicaciones de cuarentena, dañado o garantía. Los productos con seguimiento requieren clasificación manual.
-- Compras XML CFDI: importación individual/lote, detección de UUID repetido, cotejo de RFC, clasificación y factura de proveedor en borrador tras revisión.
+- Compras XML CFDI: importación individual/lote, detección de UUID repetido, cotejo de RFC, clasificación y factura o nota de crédito de proveedor en borrador tras revisión. Se bloquean totales inconsistentes e impuestos aún sin mapear.
 - Instalador Windows: copia de archivos con respaldo y restauración ante errores. No modifica base de datos, credenciales ni servicios.
 
 ## Antes de la prueba en tu Odoo

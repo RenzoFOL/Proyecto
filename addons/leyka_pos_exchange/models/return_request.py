@@ -171,7 +171,7 @@ class LeykaReturnRequest(models.Model):
                 request.stock_routing_state = "done"
 
     def _actor_user(self):
-        actor_id = self.env.context.get("leyka_actor_user_id")
+        actor_id = self.env.context.get("leyka_actor_user_id") if self.env.su else None
         return self.env["res.users"].browse(actor_id).exists() if actor_id else self.env.user
 
     def _check_request_quantities(self):
@@ -252,6 +252,8 @@ class LeykaReturnRequest(models.Model):
 
     def _issue_credit(self):
         self.ensure_one()
+        if not self.replacement_order_id or self.replacement_order_id.state not in ("paid", "done", "invoiced"):
+            raise UserError(_("Emite el vale desde la orden de cambio del POS para registrar también la devolución."))
         if self.state != "validated":
             raise UserError(_("Primero valida físicamente la devolución."))
         value = self.credit_amount or self.amount

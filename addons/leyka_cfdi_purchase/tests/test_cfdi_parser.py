@@ -1,4 +1,8 @@
 from odoo.tests.common import TransactionCase
+from odoo.exceptions import ValidationError
+from psycopg2 import IntegrityError
+from odoo.tools import mute_logger
+from ..models.cfdi_purchase import _decimal
 
 
 CFDI = b"""<?xml version="1.0" encoding="UTF-8"?>
@@ -28,6 +32,11 @@ CFDI = b"""<?xml version="1.0" encoding="UTF-8"?>
 
 
 class TestCfdiParser(TransactionCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.env.ref("base.MXN").active = True
+
     def test_secure_parse_extracts_purchase_data(self):
         self.env.company.vat = "XAXX010101000"
         values = self.env["leyka.cfdi.purchase"].parse_xml_payload(
@@ -39,3 +48,20 @@ class TestCfdiParser(TransactionCase):
         self.assertEqual(values["receiver_rfc"], "XAXX010101000")
         self.assertEqual(values["total"], 116.0)
         self.assertEqual(values["line_ids"][0][2]["tax_rate"], 16.0)
+
+    def test_rejects_doctype(self):
+        xml = CFDI.replace(b'<cfdi:Comprobante', b'<!DOCTYPE Comprobante [<!ENTITY sample "x">]><cfdi:Comprobante', 1)
+        with self.assertRaises(ValidationError):
+            self.env["leyka.cfdi.purchase"].parse_xml_payload(xml, "dtd.xml")
+
+    def test_rejects_non_finite_money(self):
+        for value in ("NaN", "Infinity", "-Infinity"):
+            with self.assertRaises(ValidationError):
+                _decimal(value)
+
+    def test_uuid_is_unique_in_database(self):
+        model = self.env["leyka.cfdi.purchase"]
+        model.import_xml_payload(CFDI, "original.xml")
+        with self.assertRaises(IntegrityError), mute_logger("odoo.sql_db"), self.env.cr.savepoint():
+            model.import_xml_payload(CFDI, "duplicate.xml")
+            model.flush_model()

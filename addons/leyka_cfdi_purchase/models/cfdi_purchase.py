@@ -18,7 +18,10 @@ def _normalized_rfc(value):
 
 def _decimal(value, default="0"):
     try:
-        return Decimal(value or default)
+        number = Decimal(value or default)
+        if not number.is_finite():
+            raise InvalidOperation
+        return number
     except InvalidOperation as error:
         raise ValidationError(_("El CFDI contiene un importe inválido: %s") % value) from error
 
@@ -163,6 +166,8 @@ class LeykaCfdiPurchase(models.Model):
             root = etree.fromstring(payload, parser=parser)
         except (etree.XMLSyntaxError, ValueError) as error:
             raise ValidationError(_("XML inválido: %s") % error) from error
+        if root.getroottree().docinfo.doctype:
+            raise ValidationError(_("No se permiten DTD ni entidades en un CFDI."))
         if etree.QName(root).localname != "Comprobante":
             raise ValidationError(_("El archivo no es un comprobante CFDI."))
 
@@ -184,7 +189,7 @@ class LeykaCfdiPurchase(models.Model):
             limit=1,
         )
         if not currency:
-            currency = self.env.company.currency_id
+            raise ValidationError(_("Activa y configura la moneda %s antes de importar.") % currency_code)
 
         line_commands = []
         for concept in root.xpath(
@@ -330,15 +335,30 @@ class LeykaCfdiPurchase(models.Model):
         return template.product_variant_id
 
     def action_create_vendor_bill(self):
+        with self.env.cr.savepoint():
+            return self._create_checked_vendor_bill()
+
+    def _create_checked_vendor_bill(self):
         self.ensure_one()
+        self.check_access("write")
+        self.env.cr.execute("SELECT id FROM leyka_cfdi_purchase WHERE id = %s FOR UPDATE", [self.id])
+        self.invalidate_recordset(["state", "vendor_bill_id"])
         if self.state != "approved":
             raise UserError(_("Aprueba el CFDI antes de crear la factura."))
         if self.vendor_bill_id:
             raise UserError(_("Este CFDI ya tiene una factura vinculada."))
-        if self.document_type != "I":
+        if self.document_type not in ("I", "E"):
             raise UserError(
-                _("Las notas de crédito se procesarán en el flujo de correcciones.")
+                _("Solo se puede crear factura o nota de crédito de proveedor con CFDI de ingreso o egreso.")
             )
+        if self.tax_withheld:
+            raise UserError(_("Este CFDI contiene retenciones. Requiere configurar sus impuestos antes de crear la factura."))
+        parser = etree.XMLParser(resolve_entities=False, no_network=True, load_dtd=False)
+        root = etree.fromstring(base64.b64decode(self.xml_file), parser)
+        for concept in root.xpath("./*[local-name()='Conceptos']/*[local-name()='Concepto']"):
+            taxes = concept.xpath("./*[local-name()='Impuestos']/*[local-name()='Traslados']/*")
+            if len(taxes) > 1 or any(tax.get("Impuesto") != "002" or tax.get("TipoFactor") == "Cuota" for tax in taxes):
+                raise UserError(_("El CFDI tiene impuestos adicionales al IVA simple. Requiere revisión contable."))
         supplier = self._find_or_create_supplier()
         generic_product = self._generic_purchase_product()
         invoice_lines = []
@@ -359,10 +379,14 @@ class LeykaCfdiPurchase(models.Model):
                     ("company_id", "=", self.company_id.id),
                     ("type_tax_use", "=", "purchase"),
                     ("amount", "=", line.tax_rate),
+                    ("amount_type", "=", "percent"),
+                    ("price_include", "=", False),
                     ("active", "=", True),
                 ],
                 limit=1,
             )
+            if line.tax_rate and not tax:
+                raise UserError(_("Configura un impuesto de compra del %s%%, excluido del precio.") % line.tax_rate)
             discount_percent = (
                 (line.discount / line.line_subtotal) * 100
                 if line.line_subtotal
@@ -384,7 +408,7 @@ class LeykaCfdiPurchase(models.Model):
             )
         bill = self.env["account.move"].create(
             {
-                "move_type": "in_invoice",
+                "move_type": "in_refund" if self.document_type == "E" else "in_invoice",
                 "partner_id": supplier.id,
                 "invoice_date": fields.Date.to_date(self.invoice_date),
                 "ref": self.uuid,
@@ -393,6 +417,8 @@ class LeykaCfdiPurchase(models.Model):
                 "invoice_line_ids": invoice_lines,
             }
         )
+        if not self.currency_id.is_zero(bill.amount_total - self.total):
+            raise ValidationError(_("El total calculado por Odoo no coincide con el XML. Revisa productos, descuentos e impuestos."))
         self.write({"vendor_bill_id": bill.id, "state": "billed"})
         return {
             "type": "ir.actions.act_window",
