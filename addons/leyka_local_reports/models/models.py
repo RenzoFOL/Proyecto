@@ -71,9 +71,13 @@ class LocalSummary(models.TransientModel):
             for line in order.lines:
                 if line.product_id == order.config_id.leyka_credit_product_id or line.product_id.type == 'combo':
                     continue
-                sign = -1 if order.is_refund else 1
-                subtotal = convert(sign * line.price_subtotal)
-                total = convert(sign * line.price_subtotal_incl)
+                # POS payloads can store refund subtotals with either sign.
+                # The economic direction comes from quantity and net unit price,
+                # not from the order-level refund flag (mixed changes use False).
+                direction = line.qty * line.price_unit * (1 - line.discount / 100)
+                sign = -1 if direction < 0 else (1 if direction > 0 else 0)
+                subtotal = convert(sign * abs(line.price_subtotal))
+                total = convert(sign * abs(line.price_subtotal_incl))
                 values['gross_sales'] += max(0, total)
                 values['returns'] += max(0, -total)
                 values['net_sales'] += subtotal
