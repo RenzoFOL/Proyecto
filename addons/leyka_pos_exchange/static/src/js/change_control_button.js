@@ -3,12 +3,12 @@
 import { _t } from "@web/core/l10n/translation";
 import { patch } from "@web/core/utils/patch";
 import { ControlButtons } from "@point_of_sale/app/screens/product_screen/control_buttons/control_buttons";
+import { TicketScreen } from "@point_of_sale/app/screens/ticket_screen/ticket_screen";
 
 patch(ControlButtons.prototype, {
     async onClickLeykaChanges() {
         const order = this.pos.getOrder();
         const partner = order.getPartner();
-        order.leyka_exchange_payload = { stage: "selecting" };
         const searchDetails = partner
             ? { fieldName: "PARTNER", searchTerm: partner.name }
             : {};
@@ -22,8 +22,28 @@ patch(ControlButtons.prototype, {
             stateOverride: {
                 filter: "SYNCED",
                 search: searchDetails,
-                destinationOrder: order,
+                leykaChanges: true,
             },
         });
+    },
+});
+
+patch(TicketScreen.prototype, {
+    async addAdditionalRefundInfo(order, destinationOrder) {
+        await super.addAdditionalRefundInfo(...arguments);
+        if (this.props.stateOverride?.leykaChanges) {
+            destinationOrder.leyka_exchange_payload = { stage: "selecting" };
+        }
+    },
+    async onDoRefund() {
+        const result = await super.onDoRefund(...arguments);
+        const order = this.pos.getOrder();
+        if (this.props.stateOverride?.leykaChanges &&
+            order?.leyka_exchange_payload?.stage === "selecting" &&
+            order.lines.some((line) => line.refunded_orderline_id && line.qty < 0)) {
+            order.setScreenData({ name: "ProductScreen" });
+            this.pos.navigate("ProductScreen", { orderUuid: order.uuid });
+        }
+        return result;
     },
 });

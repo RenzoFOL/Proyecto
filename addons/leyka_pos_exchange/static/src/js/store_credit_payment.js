@@ -30,7 +30,7 @@ patch(PaymentScreen.prototype, {
         const credits = await this.pos.data.call(
             "leyka.store.credit",
             "lookup_for_pos",
-            [[], query]
+            [query]
         );
         if (!credits.length) {
             this.dialog.add(AlertDialog, {

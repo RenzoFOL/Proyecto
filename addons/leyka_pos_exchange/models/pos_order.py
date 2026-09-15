@@ -8,6 +8,8 @@ class PosOrder(models.Model):
         string="Datos de cambio Leyka",
         copy=False,
     )
+    leyka_voucher_result = fields.Json(readonly=True, copy=False)
+    leyka_credit_redemptions = fields.Json(readonly=True, copy=False)
     leyka_return_request_id = fields.Many2one(
         "leyka.return.request",
         string="Solicitud de cambio Leyka",
@@ -25,9 +27,9 @@ class PosOrder(models.Model):
             # These mutations share the same database transaction as the POS sale.
             # If balance or policy validation fails, the entire sync rolls back.
             if self.leyka_exchange_payload:
-                self.env["leyka.return.request"].finalize_from_pos(
+                self.leyka_voucher_result = self.env["leyka.return.request"].finalize_from_pos(
                     self.id, self.leyka_exchange_payload
                 )
             if any(self.payment_ids.payment_method_id.mapped("leyka_store_credit_payment")):
-                self.env["leyka.store.credit"].finalize_pos_redemptions(self.id)
+                self.leyka_credit_redemptions = self.env["leyka.store.credit"].finalize_pos_redemptions(self.id)
         return result

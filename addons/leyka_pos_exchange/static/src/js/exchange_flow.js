@@ -9,6 +9,9 @@ import { PosOrder } from "@point_of_sale/app/models/pos_order";
 import { LeykaExchangeDialog } from "./exchange_dialog";
 
 patch(PosOrder.prototype, {
+    get leykaVoucherResult() {
+        return this.leyka_voucher_result;
+    },
     waitForPushOrder() {
         const usesStoreCredit = this.payment_ids.some(
             (line) => line.payment_method_id.leyka_store_credit_payment && line.leyka_credit_code
@@ -92,28 +95,15 @@ patch(OrderPaymentValidation.prototype, {
             return parentResult;
         }
         if (order.leyka_exchange_payload?.stage === "prepared") {
-            const result = await this.pos.data.call(
-                "leyka.return.request",
-                "finalize_from_pos",
-                [[], order.id, order.leyka_exchange_payload]
-            );
-            order.leykaVoucherResult = result;
+            const result = order.leyka_voucher_result;
+            if (!result?.return_request_id) {
+                return false;
+            }
             order.leyka_exchange_payload = {
                 ...order.leyka_exchange_payload,
                 stage: "completed",
                 return_request_id: result.return_request_id,
             };
-        }
-        if (
-            order.payment_ids.some(
-                (line) => line.payment_method_id.leyka_store_credit_payment && line.leyka_credit_code
-            )
-        ) {
-            order.leykaCreditRedemptions = await this.pos.data.call(
-                "leyka.store.credit",
-                "finalize_pos_redemptions",
-                [[], order.id]
-            );
         }
         return true;
     },
