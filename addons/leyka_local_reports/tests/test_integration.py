@@ -26,3 +26,16 @@ class TestLocalSummary(AccountingFixture):
         start, end = summary._period_utc()
         self.assertEqual(str(start), '2026-09-15 06:00:00')
         self.assertEqual(str(end), '2026-09-16 06:00:00')
+
+    def test_native_refund_is_negative_in_summary(self):
+        original = self._sync_order(self.create_ui_order_data([(self.product, 1)]))
+        refund = self.create_ui_order_data([{
+            'product': self.product, 'quantity': -1, 'refunded_orderline_id': original.lines.id}],
+            pos_order_ui_args={'is_refund': True}, payments=[(self.cash_payment_method, -100)])
+        self._sync_order(refund)
+        summary = self.env['leyka.local.summary'].create({
+            'date_from': fields.Date.today(), 'date_to': fields.Date.today(), 'timezone': 'UTC'})
+        summary.action_calculate()
+        self.assertEqual(summary.gross_sales, 100)
+        self.assertEqual(summary.returns, 100)
+        self.assertEqual(summary.net_sales, 0)

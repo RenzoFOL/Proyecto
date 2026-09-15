@@ -80,6 +80,10 @@ class CfdiPurchase(models.Model):
         if self.classification == 'merchandise' and self.document_type == 'I':
             if not self.purchase_order_id or self.purchase_order_id.state not in ('purchase', 'done'):
                 raise UserError(_('Crea y confirma primero la orden de compra para vincular factura y recepción.'))
+        if self.purchase_order_id and (
+                not self.currency_id.is_zero(self.purchase_order_id.amount_total - self.total)
+                or len(self.purchase_order_id.order_line.filtered(lambda l: not l.display_type)) != len(self.line_ids)):
+            raise ValidationError(_('La compra cambió respecto al XML. Revisa sus conceptos y total antes de facturar.'))
         if self.document_type == 'E' and not self.credit_effect:
             raise UserError(_('Indica si la nota de crédito es un ajuste de precio o una devolución física.'))
         if self.original_cfdi_id and (
@@ -96,6 +100,11 @@ class CfdiPurchase(models.Model):
             purchase_line = self.purchase_order_id.order_line.filtered(lambda p: p.leyka_cfdi_line_id == line)
             if len(purchase_line) != 1 or purchase_line.product_id != product:
                 raise ValidationError(_('El producto del XML cambió después de crear la compra. Revisa la vinculación.'))
+            if (purchase_line.product_uom_id != product.uom_id
+                    or abs(purchase_line.product_qty - line.quantity) > product.uom_id.rounding / 2
+                    or not self.currency_id.is_zero(purchase_line.price_unit - line.unit_price)
+                    or abs(purchase_line.discount - discount_percent) > 0.00001):
+                raise ValidationError(_('La cantidad, unidad, precio o descuento de la compra no coincide con el XML.'))
             vals['purchase_line_id'] = purchase_line.id
             vals['product_uom_id'] = purchase_line.product_uom_id.id
         return vals

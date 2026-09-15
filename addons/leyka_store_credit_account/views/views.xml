@@ -4,7 +4,10 @@
     <field name="inherit_id" ref="base.view_company_form"/>
     <field name="arch" type="xml"><xpath expr="//notebook" position="inside">
       <page string="Vales Leyka" groups="account.group_account_manager">
-        <group><field name="leyka_credit_liability_id" options="{'no_create': True}"/></group>
+        <group><field name="leyka_credit_liability_id" options="{'no_create': True}"/>
+          <field name="leyka_credit_adjustment_journal_id" options="{'no_create': True}"/>
+          <field name="leyka_credit_adjustment_account_id" options="{'no_create': True}"/>
+        </group>
         <div class="alert alert-info" role="alert">La emisión aumenta este pasivo y el canje lo disminuye al contabilizar el POS. Configura un método exclusivo de vales con diario bancario, sin terminal y sin identificar cliente. El módulo no crea un depósito bancario por su uso. Los ajustes manuales deben revisarse en Contabilidad.</div>
       </page>
     </xpath></field>

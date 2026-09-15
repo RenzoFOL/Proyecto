@@ -7,6 +7,10 @@ class Company(models.Model):
 
     leyka_credit_liability_id = fields.Many2one('account.account', string='Pasivo de vales Leyka',
         domain="[('account_type', '=', 'liability_current'), ('company_ids', 'in', id)]")
+    leyka_credit_adjustment_journal_id = fields.Many2one('account.journal', string='Diario de ajustes de vales',
+        domain="[('type', '=', 'general'), ('company_id', '=', id)]")
+    leyka_credit_adjustment_account_id = fields.Many2one('account.account', string='Contrapartida de ajustes de vales',
+        domain="[('company_ids', 'in', id)]")
 
     @api.constrains('leyka_credit_liability_id')
     def _check_credit_account(self):
@@ -103,11 +107,13 @@ class StoreCreditTransaction(models.Model):
                 raise UserError(_('Este movimiento no cambia el saldo.'))
             company = self.credit_id.company_id
             account = company._leyka_credit_account()
-            journal = self.env['account.journal'].search([
-                ('company_id', '=', company.id), ('type', '=', 'general')], limit=1)
-            if not journal or not journal.default_account_id:
-                raise UserError(_('Configura un diario general con cuenta de contrapartida para revisar los ajustes de vales.'))
-            if journal.default_account_id == account:
+            journal = company.leyka_credit_adjustment_journal_id
+            offset = company.leyka_credit_adjustment_account_id
+            if not journal or not offset:
+                raise UserError(_('Configura el diario general y la contrapartida de ajustes de vales en la compañía.'))
+            if journal.company_id != company or journal.type != 'general' or company not in offset.company_ids:
+                raise UserError(_('El diario y la contrapartida deben pertenecer a esta compañía.'))
+            if offset == account:
                 raise UserError(_('La contrapartida debe ser distinta del pasivo de vales.'))
             amount = self.amount
             move = self.env['account.move'].with_company(company).create({
@@ -115,7 +121,7 @@ class StoreCreditTransaction(models.Model):
                 'ref': '%s / %s' % (self.credit_id.code, self.operation),
                 'line_ids': [(0, 0, {'account_id': account.id,
                     'debit': max(-amount, 0), 'credit': max(amount, 0), 'name': self.credit_id.code}),
-                    (0, 0, {'account_id': journal.default_account_id.id,
+                    (0, 0, {'account_id': offset.id,
                     'debit': max(amount, 0), 'credit': max(-amount, 0), 'name': _('Revisar contrapartida de vale')})],
             })
             self.sudo().adjustment_move_id = move

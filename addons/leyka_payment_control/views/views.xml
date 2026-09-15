@@ -1,0 +1,28 @@
+<odoo>
+  <record id="access_settlement" model="ir.model.access">
+    <field name="name">leyka.payment.settlement accountant</field><field name="model_id" ref="model_leyka_payment_settlement"/><field name="group_id" ref="account.group_account_manager"/>
+    <field name="perm_read" eval="True"/><field name="perm_write" eval="True"/><field name="perm_create" eval="True"/><field name="perm_unlink" eval="True"/>
+  </record>
+  <record id="settlement_company_rule" model="ir.rule"><field name="name">Liquidaciones de compañías permitidas</field><field name="model_id" ref="model_leyka_payment_settlement"/><field name="domain_force">[('company_id', 'in', company_ids)]</field></record>
+  <record id="settlement_list" model="ir.ui.view">
+    <field name="name">leyka.payment.settlement.list</field><field name="model">leyka.payment.settlement</field>
+    <field name="arch" type="xml"><list decoration-warning="difference != 0"><field name="name"/><field name="provider"/><field name="payment_method_id"/><field name="settlement_date"/><field name="gross_amount" sum="Cobros"/><field name="fee_total" sum="Comisiones"/><field name="expected_net" sum="Esperado"/><field name="received_net" sum="Recibido"/><field name="difference" sum="Diferencia"/><field name="state"/></list></field>
+  </record>
+  <record id="settlement_form" model="ir.ui.view">
+    <field name="name">leyka.payment.settlement.form</field><field name="model">leyka.payment.settlement</field>
+    <field name="arch" type="xml"><form string="Control de terminales">
+      <header><button name="action_collect_payments" type="object" string="Agregar cobros del POS" class="btn-primary" invisible="state != 'draft'"/><button name="action_review" type="object" string="Confirmar revisión" invisible="state != 'draft'"/><button name="action_clear_payments" type="object" string="Liberar cobros" invisible="state != 'draft'"/><button name="action_reopen" type="object" string="Reabrir revisión" invisible="state != 'reviewed'"/><field name="state" widget="statusbar"/></header>
+      <sheet>
+        <group><group><field name="name" readonly="state == 'reviewed'"/><field name="company_id" readonly="state == 'reviewed'"/><field name="provider" readonly="state == 'reviewed'"/><field name="payment_method_id" readonly="state == 'reviewed'"/><field name="currency_id"/></group>
+          <group><field name="date_from" readonly="state == 'reviewed'"/><field name="date_to" readonly="state == 'reviewed'"/><field name="timezone" readonly="state == 'reviewed'"/><field name="settlement_date" readonly="state == 'reviewed'"/></group></group>
+        <div class="alert alert-info" role="alert">Compara los cobros de Odoo con tu estado de cuenta de Mercado Pago, Stori u otro proveedor. Introduce la comisión real y el depósito recibido. Esta revisión no envía cobros, no solicita reembolsos y no publica asientos ni concilia el banco automáticamente.</div>
+        <group><group string="Importes"><field name="payment_count"/><field name="gross_amount"/><field name="fee_base" readonly="state == 'reviewed'"/><field name="fee_tax" readonly="state == 'reviewed'"/><field name="fee_total"/><field name="other_adjustment" readonly="state == 'reviewed'"/></group>
+          <group string="Depósito"><field name="expected_net"/><field name="received_net" readonly="state == 'reviewed'"/><field name="difference"/><field name="bank_line_id" readonly="state == 'reviewed'"/><field name="fee_bill_id" readonly="state == 'reviewed'"/><field name="reviewed_by_id"/><field name="reviewed_at"/></group></group>
+        <field name="note" readonly="state == 'reviewed'" placeholder="Ajustes, referencia del reporte o aclaraciones"/>
+        <field name="payment_ids" readonly="1"><list create="0" edit="0" delete="0"><field name="payment_date"/><field name="pos_order_id"/><field name="payment_method_id"/><field name="amount" sum="Total"/></list></field>
+      </sheet>
+    </form></field>
+  </record>
+  <record id="action_settlement" model="ir.actions.act_window"><field name="name">Terminales: cobros y depósitos</field><field name="res_model">leyka.payment.settlement</field><field name="view_mode">list,form</field></record>
+  <menuitem id="menu_settlement" name="Terminales: cobros y depósitos" parent="leyka_local_core.menu_leyka_root" action="action_settlement" groups="account.group_account_manager" sequence="5"/>
+</odoo>

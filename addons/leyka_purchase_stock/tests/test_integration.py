@@ -56,6 +56,15 @@ class TestPurchaseStock(AccountTestInvoicingCommon):
             self.cfdi.action_create_vendor_bill()
         self.assertFalse(self.cfdi.vendor_bill_id)
 
+    def test_changed_purchase_total_blocks_invoice(self):
+        self.cfdi.action_create_purchase()
+        purchase = self.cfdi.purchase_order_id
+        purchase.button_confirm()
+        purchase.order_line.price_unit = 120
+        with self.assertRaises(ValidationError):
+            self.cfdi.action_create_vendor_bill()
+        self.assertFalse(self.cfdi.vendor_bill_id)
+
     def test_partial_receipt_keeps_remaining_quantity(self):
         self.cfdi.line_ids.write({'quantity': 2, 'unit_price': 50})
         self.cfdi.action_create_purchase()
