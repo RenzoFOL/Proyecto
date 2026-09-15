@@ -1,13 +1,15 @@
 from odoo import Command
-from odoo.addons.point_of_sale.tests.common import CommonPosTest
+from odoo.addons.point_of_sale.tests.common import TestPoSCommon
 from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestLeykaPosExchange(CommonPosTest):
+class TestLeykaPosExchange(TestPoSCommon):
     def setUp(self):
         super().setUp()
-        self.config = self.pos_config_usd
+        self.config = self.basic_config
+        self.bank_payment_method = self.bank_pm1
+        self.cash_payment_method = self.cash_pm1
         self.config.leyka_enable_changes = True
         self.config.leyka_credit_product_id = self.env.ref(
             "leyka_pos_exchange.product_leyka_store_credit"
