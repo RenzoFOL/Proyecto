@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_leyka_cfdi_purchase_list" model="ir.ui.view">
+        <field name="name">leyka.cfdi.purchase.list</field>
+        <field name="model">leyka.cfdi.purchase</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="invoice_date"/>
+                <field name="uuid"/>
+                <field name="issuer_rfc"/>
+                <field name="issuer_name"/>
+                <field name="classification"/>
+                <field name="subtotal" sum="Subtotal"/>
+                <field name="tax_transferred" sum="IVA trasladado"/>
+                <field name="total" sum="Total"/>
+                <field name="state"/>
+                <field name="vendor_bill_id"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_leyka_cfdi_purchase_search" model="ir.ui.view">
+        <field name="name">leyka.cfdi.purchase.search</field>
+        <field name="model">leyka.cfdi.purchase</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="uuid"/>
+                <field name="issuer_rfc"/>
+                <field name="issuer_name"/>
+                <field name="classification"/>
+                <filter name="review" string="Por revisar" domain="[('state', '=', 'review')]"/>
+                <filter name="billed" string="Con factura" domain="[('state', '=', 'billed')]"/>
+                <group>
+                    <filter name="group_issuer" string="Proveedor" context="{'group_by': 'issuer_rfc'}"/>
+                    <filter name="group_classification" string="Clasificación" context="{'group_by': 'classification'}"/>
+                    <filter name="group_month" string="Mes" context="{'group_by': 'invoice_date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_leyka_cfdi_purchase_form" model="ir.ui.view">
+        <field name="name">leyka.cfdi.purchase.form</field>
+        <field name="model">leyka.cfdi.purchase</field>
+        <field name="arch" type="xml">
+            <form string="CFDI de compra" create="0">
+                <header>
+                    <button name="action_approve" type="object" string="Aprobar" class="btn-primary" groups="leyka_local_core.group_leyka_manager" invisible="state != 'review'"/>
+                    <button name="action_create_vendor_bill" type="object" string="Crear factura borrador" class="btn-primary" invisible="state != 'approved'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="review,approved,billed,rejected"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button class="oe_stat_button" type="object" name="action_create_vendor_bill" invisible="vendor_bill_id or state != 'approved'" icon="fa-file-text-o">
+                            <div class="o_stat_info"><span class="o_stat_text">Crear factura</span></div>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1><field name="display_reference"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="uuid"/>
+                            <field name="invoice_date"/>
+                            <field name="document_type"/>
+                            <field name="classification"/>
+                            <field name="file_name"/>
+                            <field name="xml_file" filename="file_name"/>
+                        </group>
+                        <group>
+                            <field name="issuer_rfc"/>
+                            <field name="issuer_name"/>
+                            <field name="receiver_rfc"/>
+                            <field name="receiver_name"/>
+                            <field name="receiver_cfdi_use"/>
+                            <field name="vendor_bill_id"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="subtotal"/>
+                        <field name="discount"/>
+                        <field name="tax_transferred"/>
+                        <field name="tax_withheld"/>
+                        <field name="total"/>
+                        <field name="currency_id"/>
+                    </group>
+                    <field name="review_note" placeholder="Alertas y revisión"/>
+                    <notebook>
+                        <page string="Conceptos">
+                            <field name="line_ids">
+                                <list editable="bottom">
+                                    <field name="identification"/>
+                                    <field name="sat_product_code"/>
+                                    <field name="description"/>
+                                    <field name="quantity"/>
+                                    <field name="unit_price"/>
+                                    <field name="discount"/>
+                                    <field name="tax_rate"/>
+                                    <field name="product_id"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Datos fiscales">
+                            <group>
+                                <field name="version"/>
+                                <field name="series"/>
+                                <field name="folio"/>
+                                <field name="issuer_tax_regime"/>
+                                <field name="receiver_tax_regime"/>
+                                <field name="payment_method"/>
+                                <field name="payment_form"/>
+                                <field name="expedition_place"/>
+                                <field name="currency_name"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_leyka_cfdi_purchase" model="ir.actions.act_window">
+        <field name="name">CFDI de compras</field>
+        <field name="res_model">leyka.cfdi.purchase</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_review': 1}</field>
+    </record>
+</odoo>

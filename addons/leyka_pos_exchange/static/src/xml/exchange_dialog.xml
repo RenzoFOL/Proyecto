@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="leyka_pos_exchange.ExchangeDialog">
+        <Dialog title="props.title" size="'md'">
+            <div class="d-flex flex-column gap-3 text-start">
+                <div class="alert alert-info mb-0">
+                    Saldo que se convertirá en vale: <strong t-out="props.balanceText"/>
+                </div>
+                <div>
+                    <label class="form-label fw-bold">Nombre del titular</label>
+                    <input class="form-control form-control-lg" t-model="state.holderName" placeholder="Nombre completo"/>
+                </div>
+                <div>
+                    <label class="form-label fw-bold">Teléfono</label>
+                    <input class="form-control form-control-lg" t-model="state.holderPhone" inputmode="tel" placeholder="Mínimo 8 dígitos"/>
+                </div>
+                <div>
+                    <label class="form-label fw-bold">Motivo</label>
+                    <select class="form-select form-select-lg" t-model="state.reason">
+                        <option value="change_mind">Cambio de preferencia</option>
+                        <option value="wrong_product">Producto incorrecto</option>
+                        <option value="defect">Defecto o vicio</option>
+                        <option value="warranty">Garantía</option>
+                        <option value="other">Otro</option>
+                    </select>
+                </div>
+                <div class="row g-2">
+                    <div class="col-12 col-md-6">
+                        <label class="form-label fw-bold">Condición física</label>
+                        <select class="form-select" t-model="state.physicalCondition">
+                            <option value="unopened">Cerrado / sin instalar</option>
+                            <option value="opened_complete">Abierto completo</option>
+                            <option value="used">Usado / instalado</option>
+                            <option value="damaged">Dañado</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label fw-bold">Destino</label>
+                        <select class="form-select" t-model="state.disposition">
+                            <option value="resalable">Reintegrar a venta</option>
+                            <option value="quarantine">Cuarentena / revisión</option>
+                            <option value="damaged">Dañado / merma</option>
+                            <option value="supplier_warranty">Garantía con proveedor</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label fw-bold">Observaciones</label>
+                    <textarea class="form-control" rows="2" t-model="state.note" placeholder="Opcional"/>
+                </div>
+                <div t-if="!this.isValid" class="text-danger small">
+                    El nombre y un teléfono de al menos 8 dígitos son obligatorios.
+                </div>
+            </div>
+            <t t-set-slot="footer">
+                <button class="btn btn-primary btn-lg" t-att-disabled="!this.isValid" t-on-click="confirm">Continuar</button>
+                <button class="btn btn-secondary btn-lg" t-on-click="props.close">Cancelar</button>
+            </t>
+        </Dialog>
+    </t>
+</templates>

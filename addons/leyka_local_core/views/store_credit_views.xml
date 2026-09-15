@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_leyka_store_credit_list" model="ir.ui.view">
+        <field name="name">leyka.store.credit.list</field>
+        <field name="model">leyka.store.credit</field>
+        <field name="arch" type="xml">
+            <list create="0" delete="0">
+                <field name="code"/>
+                <field name="holder_id"/>
+                <field name="origin_reference"/>
+                <field name="amount_initial" sum="Emitido"/>
+                <field name="balance" sum="Saldo"/>
+                <field name="state"/>
+                <field name="create_date"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_leyka_store_credit_search" model="ir.ui.view">
+        <field name="name">leyka.store.credit.search</field>
+        <field name="model">leyka.store.credit</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="code"/>
+                <field name="holder_id"/>
+                <field name="origin_reference"/>
+                <filter name="usable" string="Con saldo" domain="[('active', '=', True), ('balance', '&gt;', 0)]"/>
+                <filter name="cancelled" string="Cancelados" domain="[('active', '=', False)]"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_leyka_store_credit_form" model="ir.ui.view">
+        <field name="name">leyka.store.credit.form</field>
+        <field name="model">leyka.store.credit</field>
+        <field name="arch" type="xml">
+            <form string="Vale de tienda" create="0" delete="0">
+                <header>
+                    <button name="action_reissue" type="object" string="Reponer código" class="btn-primary" groups="leyka_local_core.group_leyka_manager" invisible="state != 'active'"/>
+                    <button name="action_cancel" type="object" string="Cancelar" groups="leyka_local_core.group_leyka_manager" invisible="state not in ('active', 'used')"/>
+                    <field name="state" widget="statusbar" statusbar_visible="active,used,cancelled,expired"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="code"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="holder_id"/>
+                            <field name="origin_order_id"/>
+                            <field name="origin_reference"/>
+                            <field name="expiration_date"/>
+                        </group>
+                        <group>
+                            <field name="amount_initial"/>
+                            <field name="balance"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="replaces_id"/>
+                            <field name="replaced_by_id"/>
+                        </group>
+                    </group>
+                    <field name="note"/>
+                    <notebook>
+                        <page string="Auditoría">
+                            <field name="transaction_ids" readonly="1">
+                                <list create="0" delete="0">
+                                    <field name="create_date"/>
+                                    <field name="operation"/>
+                                    <field name="amount"/>
+                                    <field name="balance_after"/>
+                                    <field name="pos_order_id"/>
+                                    <field name="user_id"/>
+                                    <field name="note"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_leyka_store_credit" model="ir.actions.act_window">
+        <field name="name">Vales de tienda</field>
+        <field name="res_model">leyka.store.credit</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_usable': 1}</field>
+    </record>
+</odoo>

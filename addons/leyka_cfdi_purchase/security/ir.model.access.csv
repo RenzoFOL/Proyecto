@@ -1,0 +1,6 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_leyka_cfdi_operator,CFDI operador,model_leyka_cfdi_purchase,leyka_local_core.group_leyka_operator,1,1,1,0
+access_leyka_cfdi_manager,CFDI responsable,model_leyka_cfdi_purchase,leyka_local_core.group_leyka_manager,1,1,1,1
+access_leyka_cfdi_line_operator,Concepto operador,model_leyka_cfdi_purchase_line,leyka_local_core.group_leyka_operator,1,1,1,0
+access_leyka_cfdi_line_manager,Concepto responsable,model_leyka_cfdi_purchase_line,leyka_local_core.group_leyka_manager,1,1,1,1
+access_leyka_cfdi_import_wizard,Importar CFDI,model_leyka_cfdi_import_wizard,leyka_local_core.group_leyka_operator,1,1,1,1

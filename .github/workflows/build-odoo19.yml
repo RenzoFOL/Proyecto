@@ -1,0 +1,154 @@
+name: Verificar y empaquetar Odoo 19
+
+on:
+  push:
+    branches:
+      - main
+      - codex/leyka-local-suite-v0.1
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Preparar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Instalar validador XML
+        run: python -m pip install --disable-pip-version-check lxml
+
+      - name: Validar Python, XML y manifiestos
+        run: python scripts/check_addons.py
+
+      - name: Validar sintaxis JavaScript POS
+        run: find addons -path '*/static/src/js/*.js' -print0 | xargs -0 -n1 node --check
+
+      - name: Probar instalación y recuperación de archivos
+        run: python -m unittest discover -s windows -p 'test_*.py'
+
+      - name: Crear paquetes instalables
+        run: |
+          mkdir -p dist/suite
+          cp -R addons/leyka_local_core dist/suite/
+          cp -R addons/leyka_pos_exchange dist/suite/
+          cp -R addons/leyka_cfdi_purchase dist/suite/
+          cp -R addons/leyka_purchase_stock dist/suite/
+          cp -R addons/leyka_store_credit_account dist/suite/
+          cp -R addons/leyka_local_reports dist/suite/
+          cp -R addons/leyka_payment_control dist/suite/
+          find dist -type d -name __pycache__ -prune -exec rm -rf {} +
+          cd dist/suite
+          zip -r ../Leyka_Local_Suite_Odoo19.zip .
+          cd ../..
+          for module in leyka_local_core leyka_pos_exchange leyka_cfdi_purchase leyka_purchase_stock leyka_store_credit_account leyka_local_reports leyka_payment_control; do
+            (cd addons && zip -r "../dist/${module}_Odoo19.zip" "${module}" -x "*/__pycache__/*" "*.pyc")
+          done
+
+      - name: Publicar ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: Leyka-Local-Suite-Odoo19
+          path: dist/*.zip
+          if-no-files-found: error
+
+  odoo-install-test:
+    needs: static-checks
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: odoo
+          POSTGRES_PASSWORD: odoo
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U odoo"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Descargar módulos Leyka
+        uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Dependencias del sistema
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libldap2-dev libsasl2-dev libpq-dev
+
+      - name: Descargar Odoo 19 Community
+        run: git clone --depth 1 --branch 19.0 https://github.com/odoo/odoo.git /tmp/odoo19
+
+      - name: Instalar dependencias de Odoo
+        run: |
+          python -m pip install --upgrade pip wheel
+          python -m pip install -r /tmp/odoo19/requirements.txt
+
+      - name: Instalar módulos y ejecutar pruebas
+        env:
+          PGHOST: localhost
+          PGPORT: "5432"
+          PGUSER: odoo
+          PGPASSWORD: odoo
+        run: |
+          python /tmp/odoo19/odoo-bin \
+            --stop-after-init \
+            --without-demo=all \
+            --database=leyka_test \
+            --db_host=localhost \
+            --db_port=5432 \
+            --db_user=odoo \
+            --db_password=odoo \
+            --addons-path=/tmp/odoo19/addons,${GITHUB_WORKSPACE}/addons \
+            --init=leyka_local_core,leyka_pos_exchange,leyka_cfdi_purchase,leyka_purchase_stock,leyka_store_credit_account,leyka_local_reports,leyka_payment_control \
+            --test-enable \
+            --test-tags=/leyka_local_core,/leyka_pos_exchange,/leyka_cfdi_purchase,/leyka_purchase_stock,/leyka_store_credit_account,/leyka_local_reports,/leyka_payment_control \
+            --log-level=test
+
+  windows-installer:
+    needs: odoo-install-test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          name: Leyka-Local-Suite-Odoo19
+          path: windows
+      - name: Compilar instalador Windows
+        run: |
+          python -m pip install pyinstaller==6.16.0
+          python -m PyInstaller --noconfirm --clean --onefile --windowed --name Leyka_Instalador_Odoo19 --add-data "windows/Leyka_Local_Suite_Odoo19.zip;." windows/install_leyka.py
+      - name: Probar ejecutable compilado
+        shell: pwsh
+        run: |
+          $process = Start-Process -FilePath dist/Leyka_Instalador_Odoo19.exe -ArgumentList '--self-test' -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "Fallo de prueba del ejecutable: $($process.ExitCode)" }
+      - name: Publicar ejecutable verificado
+        uses: actions/upload-artifact@v4
+        with:
+          name: Leyka-Instalador-Windows11
+          path: dist/Leyka_Instalador_Odoo19.exe
+          if-no-files-found: error

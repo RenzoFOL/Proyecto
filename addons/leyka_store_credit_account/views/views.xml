@@ -1,0 +1,27 @@
+<odoo>
+  <record id="company_credit_account_form" model="ir.ui.view">
+    <field name="name">res.company.leyka.credit.account</field><field name="model">res.company</field>
+    <field name="inherit_id" ref="base.view_company_form"/>
+    <field name="arch" type="xml"><xpath expr="//notebook" position="inside">
+      <page string="Vales Leyka" groups="account.group_account_manager">
+        <group><field name="leyka_credit_liability_id" options="{'no_create': True}"/>
+          <field name="leyka_credit_adjustment_journal_id" options="{'no_create': True}"/>
+          <field name="leyka_credit_adjustment_account_id" options="{'no_create': True}"/>
+        </group>
+        <div class="alert alert-info" role="alert">La emisión aumenta este pasivo y el canje lo disminuye al contabilizar el POS. Configura un método exclusivo de vales con diario bancario, sin terminal y sin identificar cliente. El módulo no crea un depósito bancario por su uso. Los ajustes manuales deben revisarse en Contabilidad.</div>
+      </page>
+    </xpath></field>
+  </record>
+  <record id="credit_movement_list" model="ir.ui.view">
+    <field name="name">leyka.store.credit.transaction.account.list</field><field name="model">leyka.store.credit.transaction</field>
+    <field name="arch" type="xml"><list create="0" edit="0" delete="0">
+      <field name="create_date"/><field name="credit_id"/><field name="operation"/><field name="amount" sum="Movimiento"/>
+      <field name="pos_order_id"/><field name="return_request_id"/><field name="adjustment_move_id"/>
+      <button name="action_prepare_adjustment" type="object" string="Revisar asiento" groups="account.group_account_manager" invisible="pos_order_id or return_request_id or operation == 'reissue'"/>
+    </list></field>
+  </record>
+  <record id="action_credit_movements" model="ir.actions.act_window">
+    <field name="name">Movimientos y ajustes de vales</field><field name="res_model">leyka.store.credit.transaction</field><field name="view_mode">list</field><field name="view_id" ref="credit_movement_list"/>
+  </record>
+  <menuitem id="menu_credit_account" parent="leyka_local_core.menu_leyka_vouchers" name="Movimientos contables" action="action_credit_movements" groups="account.group_account_manager" sequence="30"/>
+</odoo>

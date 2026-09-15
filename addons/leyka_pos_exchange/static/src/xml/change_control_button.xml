@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="leyka_pos_exchange.ControlButtons"
+       t-inherit="point_of_sale.ControlButtons"
+       t-inherit-mode="extension">
+        <xpath expr="//button[@t-on-click='() => this.clickRefund()']" position="after">
+            <button t-if="this.pos.config.leyka_enable_changes"
+                    class="control-button btn btn-light rounded-0 fw-bolder"
+                    t-on-click="() => this.onClickLeykaChanges()">
+                <i class="fa fa-exchange me-1" role="img" aria-label="Cambios y vales"/>
+                Cambios / Vales
+            </button>
+        </xpath>
+    </t>
+</templates>

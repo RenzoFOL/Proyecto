@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="pos_config_form_leyka_exchange" model="ir.ui.view">
+        <field name="name">pos.config.form.leyka.exchange</field>
+        <field name="model">pos.config</field>
+        <field name="inherit_id" ref="point_of_sale.pos_config_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form/sheet" position="inside">
+                <group string="Cambios y vales Leyka">
+                    <field name="leyka_enable_changes"/>
+                    <field name="leyka_require_holder" invisible="not leyka_enable_changes"/>
+                    <field name="leyka_manager_refund_only" invisible="not leyka_enable_changes"/>
+                    <field name="leyka_credit_product_id" invisible="not leyka_enable_changes" options="{'no_create': True}"/>
+                    <field name="leyka_quarantine_location_id" invisible="not leyka_enable_changes"/>
+                    <field name="leyka_damaged_location_id" invisible="not leyka_enable_changes"/>
+                    <field name="leyka_supplier_warranty_location_id" invisible="not leyka_enable_changes"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

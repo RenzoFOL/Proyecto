@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_leyka_return_request" name="Solicitudes" parent="leyka_local_core.menu_leyka_vouchers" action="action_leyka_return_request" sequence="5"/>
+</odoo>

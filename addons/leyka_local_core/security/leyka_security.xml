@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="module_category_leyka" model="ir.module.category">
+        <field name="name">Leyka Motors</field>
+        <field name="sequence">45</field>
+    </record>
+
+    <record id="privilege_leyka_operations" model="res.groups.privilege">
+        <field name="name">Operación Leyka</field>
+        <field name="sequence">45</field>
+        <field name="category_id" ref="module_category_leyka"/>
+    </record>
+
+    <record id="group_leyka_operator" model="res.groups">
+        <field name="name">Operador</field>
+        <field name="sequence">10</field>
+        <field name="privilege_id" ref="privilege_leyka_operations"/>
+        <field name="implied_ids" eval="[(4, ref('point_of_sale.group_pos_user'))]"/>
+    </record>
+
+    <record id="group_leyka_manager" model="res.groups">
+        <field name="name">Responsable</field>
+        <field name="sequence">20</field>
+        <field name="privilege_id" ref="privilege_leyka_operations"/>
+        <field name="implied_ids" eval="[(4, ref('group_leyka_operator')), (4, ref('point_of_sale.group_pos_manager'))]"/>
+    </record>
+
+    <record id="rule_holder_company" model="ir.rule">
+        <field name="name">Titulares de la compañía</field>
+        <field name="model_id" ref="model_leyka_voucher_holder"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('group_leyka_operator'))]"/>
+    </record>
+
+    <record id="rule_credit_company" model="ir.rule">
+        <field name="name">Vales de la compañía</field>
+        <field name="model_id" ref="model_leyka_store_credit"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('group_leyka_operator'))]"/>
+    </record>
+</odoo>

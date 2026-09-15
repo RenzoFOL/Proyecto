@@ -1,0 +1,27 @@
+<odoo>
+  <record id="cfdi_stock_form" model="ir.ui.view">
+    <field name="name">leyka.cfdi.purchase.stock</field><field name="model">leyka.cfdi.purchase</field>
+    <field name="inherit_id" ref="leyka_cfdi_purchase.view_leyka_cfdi_purchase_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//header" position="inside">
+        <button name="action_create_purchase" type="object" string="Crear / abrir compra" class="btn-primary" invisible="document_type != 'I' or state not in ('approved', 'billed')"/>
+        <button name="action_open_receipts" type="object" string="Ver recepciones / devolución" invisible="not purchase_order_id and not original_cfdi_id"/>
+      </xpath>
+      <xpath expr="//notebook" position="inside">
+        <page string="Compra e inventario">
+          <group><field name="company_id" groups="base.group_multi_company"/>
+            <field name="purchase_order_id"/><field name="credit_effect" invisible="document_type != 'E'"/>
+            <field name="original_cfdi_id" invisible="document_type != 'E'"/>
+          </group>
+          <div class="alert alert-info" role="alert">Confirma la orden de compra y registra las cantidades recibidas desde Inventario. Una factura no confirma que haya llegado la mercancía. Para devolver al proveedor, abre una recepción validada y usa «Devolver»; la nota de crédito registra el ajuste de dinero.</div>
+          <field name="receipt_ids" readonly="1"/>
+        </page>
+      </xpath>
+    </field>
+  </record>
+  <record id="purchase_cfdi_form" model="ir.ui.view">
+    <field name="name">purchase.order.leyka.cfdi</field><field name="model">purchase.order</field>
+    <field name="inherit_id" ref="purchase.purchase_order_form"/>
+    <field name="arch" type="xml"><xpath expr="//field[@name='partner_ref']" position="after"><field name="leyka_cfdi_id" invisible="not leyka_cfdi_id"/></xpath></field>
+  </record>
+</odoo>

@@ -1,0 +1,30 @@
+<odoo>
+  <record id="access_summary" model="ir.model.access">
+    <field name="name">leyka.local.summary accountant</field><field name="model_id" ref="model_leyka_local_summary"/>
+    <field name="group_id" ref="account.group_account_manager"/><field name="perm_read" eval="True"/><field name="perm_write" eval="True"/><field name="perm_create" eval="True"/><field name="perm_unlink" eval="True"/>
+  </record>
+  <record id="summary_form" model="ir.ui.view">
+    <field name="name">leyka.local.summary.form</field><field name="model">leyka.local.summary</field>
+    <field name="arch" type="xml"><form string="Mi tienda Leyka">
+      <header><button name="action_calculate" type="object" string="Actualizar resumen" class="btn-primary"/></header>
+      <sheet>
+        <group><group><field name="company_id"/><field name="date_from"/><field name="date_to"/></group><group><field name="timezone"/><field name="currency_id"/><field name="computed_at"/></group></group>
+        <div class="alert alert-info" role="alert">Resumen operativo del POS local. Las compras son facturas contabilizadas por fecha de factura. Los impuestos registrados no equivalen al IVA acreditable ni al impuesto por pagar. La utilidad bruta usa los costos guardados por Odoo, antes de comisiones, gastos e ISR.</div>
+        <group invisible="not computed_at">
+          <group string="Ventas y costos"><field name="gross_sales"/><field name="returns"/><field name="net_sales"/><field name="sales_taxes"/><field name="cost"/><field name="pending_cost_count"/><field name="zero_cost_count"/><field name="gross_profit" invisible="pending_cost_count != 0"/>
+            <button name="action_orders" type="object" string="Ver tickets incluidos"/>
+          </group>
+          <group string="Cobros y compras"><field name="external_payments"/><field name="credit_redeemed"/><field name="purchase_base"/><field name="purchase_taxes"/><field name="unposted_bill_count"/><field name="pending_receipt_count"/><button name="action_bills" type="object" string="Ver facturas incluidas"/></group>
+        </group>
+        <group string="Vales al cierre del periodo" invisible="not computed_at">
+          <field name="has_credit_account" invisible="1"/><field name="credit_outstanding"/><field name="credit_ledger" invisible="not has_credit_account"/><field name="credit_difference" invisible="not has_credit_account"/><field name="open_session_count"/>
+        </group>
+        <div class="alert alert-warning" role="alert" invisible="not computed_at or has_credit_account">Falta configurar la cuenta de pasivo de vales en la compañía.</div>
+        <div class="alert alert-warning" role="alert" invisible="not computed_at or pending_cost_count == 0">Hay costos pendientes; cierra las sesiones y verifica la valoración antes de calcular la utilidad.</div>
+        <div class="text-muted" invisible="not computed_at">Una diferencia entre saldo operativo y contable puede incluir sesiones sin cerrar, asientos manuales pendientes o saldos anteriores a esta integración. Abre los movimientos de vales para revisar su origen.</div>
+      </sheet>
+    </form></field>
+  </record>
+  <record id="action_summary" model="ir.actions.act_window"><field name="name">Mi tienda: ventas y compras</field><field name="res_model">leyka.local.summary</field><field name="view_mode">form</field></record>
+  <menuitem id="menu_summary" name="Mi tienda: resumen" parent="leyka_local_core.menu_leyka_root" action="action_summary" groups="account.group_account_manager" sequence="1"/>
+</odoo>
