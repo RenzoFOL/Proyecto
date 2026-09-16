@@ -37,6 +37,7 @@ class TestImportableVales(TestPoSCommon):
         })
         self.env['stock.quant']._update_available_quantity(self.product, self.config.picking_type_id.default_location_src_id, 10)
         self.open_new_session()
+        self.cash_pm = self.config.payment_method_ids.filtered("is_cash_count")[:1]
 
     def sync(self, data):
         self.env['pos.order'].sync_from_ui([data])
@@ -115,13 +116,13 @@ class TestImportableVales(TestPoSCommon):
 
     def test_holder_review_and_phone_required(self):
         for values in [{'x_leyka_vale_holder': ''}, {'x_leyka_vale_phone': '123'}, {'x_leyka_vale_reviewed': False}]:
-            with self.assertRaises((UserError, ValidationError)), self.env.cr.savepoint():
+            with self.assertRaises(UserError), self.env.cr.savepoint():
                 self.returned(**values)
 
     def test_cannot_return_twice(self):
         source = self.original(1)
         self.returned(source)
-        with self.assertRaises((UserError, ValidationError)), self.env.cr.savepoint():
+        with self.assertRaises(UserError), self.env.cr.savepoint():
             self.returned(source)
 
     def test_partial_redemption_and_no_overdraft(self):
@@ -133,19 +134,19 @@ class TestImportableVales(TestPoSCommon):
             'program_id': self.program.id, 'points': -40, 'points_earned': 0, 'points_spent': 40,
         }})
         self.assertEqual(card.points, 60)
-        with self.assertRaises((UserError, ValidationError)), self.env.cr.savepoint():
+        with self.assertRaises(UserError), self.env.cr.savepoint():
             other = self.original(1)
             other.confirm_coupon_programs({str(card.id): {'program_id': self.program.id, 'points': -61}})
         self.assertEqual(card.points, 60)
 
     def test_no_orphan_card(self):
-        with self.assertRaises((UserError, ValidationError)), self.env.cr.savepoint():
+        with self.assertRaises(UserError), self.env.cr.savepoint():
             self.env['loyalty.card'].create({'program_id': self.program.id, 'points': 100})
 
     def test_no_expiration(self):
         order = self.returned()
         self.issue(order)
-        with self.assertRaises((UserError, ValidationError)), self.env.cr.savepoint():
+        with self.assertRaises(UserError), self.env.cr.savepoint():
             self.card(order).expiration_date = '2099-12-31'
 
     def test_cash_is_not_a_vale(self):
@@ -153,7 +154,7 @@ class TestImportableVales(TestPoSCommon):
         data = self.create_ui_order_data([
             {'product': self.product, 'quantity': -1, 'refunded_orderline_id': source.lines.id},
         ], pos_order_ui_args={'x_leyka_vale_pending': True}, payments=[(self.cash_pm, -100)])
-        with self.assertRaises((UserError, ValidationError)), self.env.cr.savepoint():
+        with self.assertRaises(UserError), self.env.cr.savepoint():
             self.sync(data)
 
 
