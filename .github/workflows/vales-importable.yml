@@ -43,6 +43,9 @@ jobs:
       - name: Importar ZIP como en Odoo y probar
         run: |
           python /tmp/odoo19/odoo-bin shell -d vales_test --db_host=localhost --db_user=odoo --db_password=odoo --addons-path=/tmp/odoo19/addons --no-http < vales_tests/import_and_test.py
+      - name: Probar el flujo real en navegador
+        run: |
+          python /tmp/odoo19/odoo-bin -d vales_test --db_host=localhost --db_user=odoo --db_password=odoo --addons-path=/tmp/odoo19/addons,${GITHUB_WORKSPACE}/qa_addons --init=leyka_vales_qa --test-enable --test-tags=/leyka_vales_qa --stop-after-init --without-demo=all --screencasts=/tmp/leyka-screens
       - uses: actions/upload-artifact@v4
         with:
           name: Leyka-Vales-Importable-Odoo19

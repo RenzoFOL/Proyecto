@@ -13,6 +13,8 @@
   <record id="program_vales" model="loyalty.program">
     <field name="name">Vales Leyka · Cambios en tienda</field>
     <field name="program_type">gift_card</field>
+    <field name="rule_ids" eval="[(5, 0, 0)]"/>
+    <field name="reward_ids" eval="[(5, 0, 0)]"/>
     <field name="applies_on">future</field>
     <field name="trigger">auto</field>
     <field name="pos_ok" eval="True"/>
