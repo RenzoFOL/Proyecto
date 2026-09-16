@@ -34,7 +34,7 @@
         <t t-if="state.mode === 'search'">
           <label for="leyka-search" class="form-label">Código, nombre o teléfono</label>
           <div class="d-flex gap-2 mb-3">
-            <input id="leyka-search" class="form-control" t-model="state.query" t-on-keydown="(ev) => { if (ev.key === 'Enter') this.search(); }" placeholder="Nombre, 10 dígitos o LK-…"/>
+            <input id="leyka-search" class="form-control" t-model="state.query" t-on-keydown="onSearchKeydown" placeholder="Nombre, 10 dígitos o LK-…"/>
             <button class="btn btn-primary" t-on-click="search" t-att-disabled="state.busy">Buscar</button>
           </div>
           <p class="small">Comprueba el nombre y teléfono con el titular antes de canjear o reimprimir. El nombre por sí solo no prueba que le pertenece.</p>

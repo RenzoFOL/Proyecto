@@ -135,6 +135,9 @@ export class ValesDialog extends Component {
             this.pos.notification.add("Total cero: pulsa Validar para emitir el vale. No selecciones efectivo ni terminal.", { type: "info" });
         });
     }
+    onSearchKeydown(ev) {
+        if (ev.key === "Enter") this.search();
+    }
     async search() {
         await this.run(async () => {
             const q = this.state.query.trim();
