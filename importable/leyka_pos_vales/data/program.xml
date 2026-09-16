@@ -21,8 +21,9 @@
     <field name="pos_ok" eval="True"/>
     <field name="portal_visible" eval="False"/>
     <field name="date_to" eval="False"/>
-    <field name="mail_template_id" eval="False"/>
-    <field name="communication_plan_ids" eval="[(5, 0, 0)]"/>
+    <!-- Native POS requires a mail/report configuration. Receipt printing is handled
+         by Leyka; a points trigger avoids the native extra A4 PDF on creation. -->
+    <field name="communication_plan_ids" eval="[(0, 0, {'trigger': 'points_reach', 'points': 0, 'mail_template_id': ref('loyalty.mail_template_gift_card'), 'pos_report_print_id': ref('loyalty.report_gift_card')})]"/>
   </record>
   </data>
 </odoo>
