@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+  <record id="view_vales_list" model="ir.ui.view">
+    <field name="name">leyka.vales.list</field><field name="model">loyalty.card</field>
+    <field name="arch" type="xml">
+      <list create="0" edit="0" delete="0">
+        <field name="code"/><field name="x_leyka_vale_holder"/><field name="x_leyka_vale_phone"/>
+        <field name="points" string="Saldo"/><field name="source_pos_order_id"/><field name="create_date"/>
+      </list>
+    </field>
+  </record>
+  <record id="view_vales_form" model="ir.ui.view">
+    <field name="name">leyka.vales.form</field><field name="model">loyalty.card</field>
+    <field name="arch" type="xml">
+      <form create="0" edit="0" delete="0"><sheet><group>
+        <field name="code"/><field name="points" string="Saldo disponible"/>
+        <field name="x_leyka_vale_holder"/><field name="x_leyka_vale_phone"/>
+        <field name="x_leyka_vale_reason"/><field name="source_pos_order_id"/><field name="create_date"/>
+      </group><field name="history_ids" readonly="1"/></sheet></form>
+    </field>
+  </record>
+  <record id="action_vales" model="ir.actions.act_window">
+    <field name="name">Vales Leyka</field><field name="res_model">loyalty.card</field>
+    <field name="view_mode">list,form</field><field name="view_id" ref="view_vales_list"/>
+    <field name="domain" eval="[('program_id','=',ref('program_vales'))]"/>
+  </record>
+  <record id="action_vales_form" model="ir.actions.act_window.view">
+    <field name="sequence">2</field><field name="view_mode">form</field><field name="view_id" ref="view_vales_form"/>
+    <field name="act_window_id" ref="action_vales"/>
+  </record>
+  <menuitem id="menu_vales" name="Vales Leyka" parent="point_of_sale.menu_point_root" action="action_vales" sequence="55" groups="point_of_sale.group_pos_user"/>
+</odoo>

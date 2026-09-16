@@ -1,0 +1,109 @@
+<?xml version='1.0' encoding='utf-8'?>
+<odoo>
+  <record id="order_holder" model="ir.model.fields">
+    <field name="name">x_leyka_vale_holder</field>
+    <field name="field_description">Titular del vale</field>
+    <field name="ttype">char</field>
+    <field name="state">manual</field>
+    <field name="model_id" ref="point_of_sale.model_pos_order"/>
+    <field name="copied" eval="False"/>
+  </record>
+  <record id="order_phone" model="ir.model.fields">
+    <field name="name">x_leyka_vale_phone</field>
+    <field name="field_description">Teléfono del titular</field>
+    <field name="ttype">char</field>
+    <field name="state">manual</field>
+    <field name="model_id" ref="point_of_sale.model_pos_order"/>
+    <field name="copied" eval="False"/>
+  </record>
+  <record id="order_reason" model="ir.model.fields">
+    <field name="name">x_leyka_vale_reason</field>
+    <field name="field_description">Motivo de devolución</field>
+    <field name="ttype">text</field>
+    <field name="state">manual</field>
+    <field name="model_id" ref="point_of_sale.model_pos_order"/>
+    <field name="copied" eval="False"/>
+  </record>
+  <record id="order_reviewed" model="ir.model.fields">
+    <field name="name">x_leyka_vale_reviewed</field>
+    <field name="field_description">Revisión física aprobada</field>
+    <field name="ttype">boolean</field>
+    <field name="state">manual</field>
+    <field name="model_id" ref="point_of_sale.model_pos_order"/>
+    <field name="copied" eval="False"/>
+  </record>
+  <record id="order_code" model="ir.model.fields">
+    <field name="name">x_leyka_vale_code</field>
+    <field name="field_description">Código de vale Leyka</field>
+    <field name="ttype">char</field>
+    <field name="state">manual</field>
+    <field name="model_id" ref="point_of_sale.model_pos_order"/>
+    <field name="copied" eval="False"/>
+  </record>
+  <record id="order_revision" model="ir.model.fields">
+    <field name="name">x_leyka_vale_revision</field>
+    <field name="field_description">Control de devoluciones Leyka</field>
+    <field name="ttype">integer</field>
+    <field name="state">manual</field>
+    <field name="model_id" ref="point_of_sale.model_pos_order"/>
+    <field name="copied" eval="False"/>
+  </record>
+  <record id="order_pending" model="ir.model.fields">
+    <field name="name">x_leyka_vale_pending</field>
+    <field name="field_description">Devolución destinada a vale</field>
+    <field name="ttype">boolean</field>
+    <field name="state">manual</field>
+    <field name="model_id" ref="point_of_sale.model_pos_order"/>
+    <field name="copied" eval="False"/>
+  </record>
+  <record id="card_holder" model="ir.model.fields">
+    <field name="name">x_leyka_vale_holder</field>
+    <field name="field_description">Titular del vale</field>
+    <field name="ttype">char</field>
+    <field name="state">manual</field>
+    <field name="related">source_pos_order_id.x_leyka_vale_holder</field>
+    <field name="model_id" ref="loyalty.model_loyalty_card"/>
+    <field name="store" eval="True"/>
+    <field name="readonly" eval="True"/>
+  </record>
+  <record id="card_phone" model="ir.model.fields">
+    <field name="name">x_leyka_vale_phone</field>
+    <field name="field_description">Teléfono del titular</field>
+    <field name="ttype">char</field>
+    <field name="state">manual</field>
+    <field name="related">source_pos_order_id.x_leyka_vale_phone</field>
+    <field name="model_id" ref="loyalty.model_loyalty_card"/>
+    <field name="store" eval="True"/>
+    <field name="readonly" eval="True"/>
+  </record>
+  <record id="card_reason" model="ir.model.fields">
+    <field name="name">x_leyka_vale_reason</field>
+    <field name="field_description">Motivo de devolución</field>
+    <field name="ttype">text</field>
+    <field name="state">manual</field>
+    <field name="related">source_pos_order_id.x_leyka_vale_reason</field>
+    <field name="model_id" ref="loyalty.model_loyalty_card"/>
+    <field name="store" eval="True"/>
+    <field name="readonly" eval="True"/>
+  </record>
+  <record id="card_reviewed" model="ir.model.fields">
+    <field name="name">x_leyka_vale_reviewed</field>
+    <field name="field_description">Revisión física aprobada</field>
+    <field name="ttype">boolean</field>
+    <field name="state">manual</field>
+    <field name="related">source_pos_order_id.x_leyka_vale_reviewed</field>
+    <field name="model_id" ref="loyalty.model_loyalty_card"/>
+    <field name="store" eval="True"/>
+    <field name="readonly" eval="True"/>
+  </record>
+  <record id="card_code" model="ir.model.fields">
+    <field name="name">x_leyka_vale_code</field>
+    <field name="field_description">Código de vale Leyka</field>
+    <field name="ttype">char</field>
+    <field name="state">manual</field>
+    <field name="related">source_pos_order_id.x_leyka_vale_code</field>
+    <field name="model_id" ref="loyalty.model_loyalty_card"/>
+    <field name="store" eval="True"/>
+    <field name="readonly" eval="True"/>
+  </record>
+</odoo>

@@ -1,0 +1,49 @@
+name: Probar ZIP importable de vales Odoo 19
+on:
+  push:
+    branches: [codex/leyka-vales-importable-19]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  import-and-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: odoo
+          POSTGRES_PASSWORD: odoo
+          POSTGRES_DB: postgres
+        ports: ['5432:5432']
+        options: --health-cmd "pg_isready -U odoo" --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Preparar Odoo Community
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y libldap2-dev libsasl2-dev libpq-dev
+          git clone --depth 1 --branch 19.0 https://github.com/odoo/odoo.git /tmp/odoo19
+          python -m pip install -r /tmp/odoo19/requirements.txt
+      - name: Empaquetar solo un módulo
+        run: |
+          mkdir -p dist
+          node --check importable/leyka_pos_vales/static/src/vales.js
+          cd importable
+          zip -r ../dist/leyka_pos_vales_Odoo19.zip leyka_pos_vales
+      - name: Preparar base Community sin suite anterior
+        run: |
+          python /tmp/odoo19/odoo-bin --stop-after-init --without-demo=all -d vales_test --db_host=localhost --db_user=odoo --db_password=odoo --init=pos_loyalty,base_automation,base_import_module --addons-path=/tmp/odoo19/addons
+      - name: Importar ZIP como en Odoo y probar
+        run: |
+          python /tmp/odoo19/odoo-bin shell -d vales_test --db_host=localhost --db_user=odoo --db_password=odoo --addons-path=/tmp/odoo19/addons --no-http < vales_tests/import_and_test.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Leyka-Vales-Importable-Odoo19
+          path: dist/leyka_pos_vales_Odoo19.zip

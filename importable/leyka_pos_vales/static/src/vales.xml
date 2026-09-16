@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+  <t t-name="leyka_pos_vales.ControlButtons" t-inherit="point_of_sale.ControlButtons" t-inherit-mode="extension">
+    <xpath expr="//button[@t-on-click='() => this.clickRefund()']" position="replace">
+      <button t-if="this.pos.cashier._role != 'minimal'" t-att-class="buttonClass" t-on-click="clickLeykaVales">
+        <i class="fa fa-ticket me-2"/>Cambios / vales
+      </button>
+    </xpath>
+  </t>
+  <t t-name="leyka_pos_vales.ValesDialog">
+    <Dialog title="'Cambios / vales Leyka'" size="'md'">
+      <div class="leyka-vales">
+        <div t-if="state.error" class="alert alert-danger" role="alert" t-esc="state.error"/>
+        <t t-if="state.mode === 'home'">
+          <p>Las devoluciones aprobadas se convierten en saldo para comprar en Leyka Motors. Sin caducidad y sin devolución de dinero.</p>
+          <button class="btn btn-primary w-100 p-3 mb-3" t-on-click="startReturn"><i class="fa fa-undo me-2"/>Emitir vale por devolución</button>
+          <button class="btn btn-outline-primary w-100 p-3" t-on-click="() => { state.mode = 'search'; }"><i class="fa fa-search me-2"/>Buscar, canjear o reimprimir vale</button>
+        </t>
+        <t t-if="state.mode === 'issue'">
+          <div class="alert alert-info">Importe de las piezas seleccionadas: <strong t-esc="money(refundAmount)"/>. Incluye los impuestos y descuentos originales.</div>
+          <label for="leyka-holder" class="form-label">Nombre del titular *</label>
+          <input id="leyka-holder" class="form-control mb-3" t-model="state.name" maxlength="100" autocomplete="off"/>
+          <label for="leyka-phone" class="form-label">Teléfono de 10 dígitos *</label>
+          <input id="leyka-phone" class="form-control mb-3" t-model="state.phone" type="tel" inputmode="tel" maxlength="20" autocomplete="off"/>
+          <label for="leyka-reason" class="form-label">Motivo y resultado de la revisión *</label>
+          <textarea id="leyka-reason" class="form-control mb-3" t-model="state.reason" maxlength="500" placeholder="Ejemplo: pieza incompatible, sin instalar; cambio aprobado."/>
+          <div class="form-check mb-3">
+            <input id="leyka-review" class="form-check-input" type="checkbox" t-model="state.reviewed"/>
+            <label class="form-check-label" for="leyka-review">Revisé físicamente las piezas, procede conforme a la política y están aptas para volver al inventario vendible.</label>
+          </div>
+          <p class="small text-muted">No requiere RFC ni alta de cliente. Las piezas dañadas, instaladas o en garantía deben revisarse por separado antes de emitir un vale.</p>
+          <button class="btn btn-primary w-100 p-3" t-att-disabled="state.busy" t-on-click="issue">Continuar para validar el vale</button>
+        </t>
+        <t t-if="state.mode === 'search'">
+          <label for="leyka-search" class="form-label">Código, nombre o teléfono</label>
+          <div class="d-flex gap-2 mb-3">
+            <input id="leyka-search" class="form-control" t-model="state.query" t-on-keydown="(ev) => { if (ev.key === 'Enter') this.search(); }" placeholder="Nombre, 10 dígitos o LK-…"/>
+            <button class="btn btn-primary" t-on-click="search" t-att-disabled="state.busy">Buscar</button>
+          </div>
+          <p class="small">Comprueba el nombre y teléfono con el titular antes de canjear o reimprimir. El nombre por sí solo no prueba que le pertenece.</p>
+          <p t-if="state.searched and !state.rows.length and !state.pending.length" class="alert alert-info">No se encontraron vales. Revisa los datos o utiliza el código completo.</p>
+          <div t-foreach="state.rows" t-as="card" t-key="card.id" class="border rounded p-3 mb-2">
+            <strong t-esc="card.x_leyka_vale_holder"/><div t-esc="card.x_leyka_vale_phone"/>
+            <div class="leyka-code" t-esc="card.code"/>
+            <div>Saldo disponible: <strong t-esc="money(card.points)"/></div>
+            <div class="d-flex gap-2 mt-2">
+              <button class="btn btn-primary" t-on-click="() => this.redeem(card)" t-att-disabled="state.busy || card.points &lt;= 0">Canjear en esta compra</button>
+              <button class="btn btn-secondary" t-on-click="() => this.reprint(card)" t-att-disabled="state.busy">Reimprimir</button>
+            </div>
+          </div>
+          <div t-foreach="state.pending" t-as="pending" t-key="pending.id" class="alert alert-warning">
+            <strong t-esc="pending.x_leyka_vale_holder"/> · <span t-esc="pending.x_leyka_vale_phone"/>
+            <p>Devolución validada con emisión pendiente de confirmar.</p>
+            <button class="btn btn-warning" t-on-click="() => this.recover(pending)" t-att-disabled="state.busy">Recuperar vale de esta devolución</button>
+          </div>
+          <p t-if="state.rows.length === 25" class="small">Se muestran hasta 25 resultados. Escribe el teléfono completo para afinar la búsqueda.</p>
+        </t>
+      </div>
+      <t t-set-slot="footer"><button class="btn btn-secondary" t-on-click="props.close">Cerrar</button></t>
+    </Dialog>
+  </t>
+  <t t-name="leyka_pos_vales.ValeBlock">
+    <div class="leyka-vale-ticket">
+      <h3>VALE LEYKA MOTORS</h3>
+      <div t-if="reprint">REIMPRESIÓN · MISMO VALE</div>
+      <div class="leyka-code" t-esc="card.code"/>
+      <strong t-esc="card.x_leyka_vale_holder"/>
+      <div>Tel. <t t-esc="card.x_leyka_vale_phone"/></div>
+      <div class="leyka-amount">Saldo: <t t-esc="amountText"/></div>
+      <p>Sin caducidad. Válido en tienda Leyka Motors. No canjeable por efectivo. El saldo no utilizado permanece en este código.</p>
+      <p>Si pierdes el ticket, podemos localizarlo con nombre y teléfono. Conserva privado tu código.</p>
+    </div>
+  </t>
+  <t t-name="leyka_pos_vales.ValeReceipt">
+    <div class="pos-receipt">
+      <t t-set="card" t-value="props.card"/><t t-set="reprint" t-value="props.reprint"/><t t-set="amountText" t-value="money(props.amount)"/>
+      <t t-call="leyka_pos_vales.ValeBlock"/>
+    </div>
+  </t>
+  <t t-name="leyka_pos_vales.OrderReceipt" t-inherit="point_of_sale.OrderReceipt" t-inherit-mode="extension">
+    <xpath expr="//div[hasclass('before-footer')]" position="inside">
+      <t t-if="order.uiState.leykaValeReceipt">
+        <t t-set="card" t-value="order.uiState.leykaValeReceipt"/>
+        <t t-set="reprint" t-value="order.nb_print &gt; 0"/>
+        <t t-set="amountText" t-value="formatCurrency(card.points)"/>
+        <t t-call="leyka_pos_vales.ValeBlock"/>
+      </t>
+    </xpath>
+  </t>
+</templates>

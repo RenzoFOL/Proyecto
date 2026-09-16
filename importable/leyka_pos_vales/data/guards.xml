@@ -1,0 +1,92 @@
+<?xml version='1.0' encoding='utf-8'?>
+<odoo>
+  <record id="guard_order" model="base.automation">
+    <field name="name">Leyka · Validar order</field>
+    <field name="model_id" ref="point_of_sale.model_pos_order"/>
+    <field name="trigger">on_create_or_write</field>
+    <field name="trigger_field_ids" eval="[(6, 0, [ref('point_of_sale.field_pos_order__state')])]"/>
+  </record>
+  <record id="action_guard_order" model="ir.actions.server">
+    <field name="name">Leyka · Comprobar order</field>
+    <field name="model_id" ref="point_of_sale.model_pos_order"/>
+    <field name="base_automation_id" ref="guard_order"/>
+    <field name="state">code</field>
+    <field name="code"><![CDATA[product = env.ref('leyka_pos_vales.product_vale')
+for order in records:
+    credits = order.lines.filtered(lambda l: l.product_id == product)
+    if not credits and not order.x_leyka_vale_code and not order.x_leyka_vale_pending:
+        continue
+    if order.state not in ['paid', 'done', 'invoiced']:
+        continue
+    if len(credits) != 1 or credits.qty != 1 or credits.discount or credits.tax_ids or credits.price_unit <= 0:
+        raise UserError('Debe existir un único vale, sin impuestos ni descuentos y por un importe positivo.')
+    if not order.x_leyka_vale_reviewed or len((order.x_leyka_vale_holder or '').strip()) < 3 or len((order.x_leyka_vale_reason or '').strip()) < 5:
+        raise UserError('Captura nombre, motivo y aprobación de la revisión física antes de emitir el vale.')
+    phone = order.x_leyka_vale_phone or ''
+    if len(phone) != 10 or not phone.isdigit():
+        raise UserError('El teléfono del vale debe contener 10 dígitos.')
+    code = order.x_leyka_vale_code or ''
+    if len(code) != 23 or not code.startswith('LK-') or not code[3:].isalnum():
+        raise UserError('El código de vale no es válido. Genera el vale desde el botón del POS.')
+    if order.payment_ids.filtered(lambda p: abs(p.amount) > 0.001) or abs(order.amount_total) > 0.01:
+        raise UserError('La devolución por vale debe quedar en cero, sin pagos ni reembolsos de dinero.')
+    returns = order.lines - credits
+    if not returns or returns.filtered(lambda l: l.qty >= 0 or not l.refunded_orderline_id or l.is_reward_line):
+        raise UserError('El vale solo se emite por productos devueltos vinculados a una venta original.')
+    originals = returns.refunded_orderline_id
+    source = originals.order_id
+    if len(source) != 1 or source.company_id != order.company_id or source.currency_id != order.currency_id or source.state not in ['paid', 'done', 'invoiced']:
+        raise UserError('Selecciona una venta pagada de esta empresa y moneda.')
+    if source.lines.filtered('is_reward_line'):
+        raise UserError('Esta versión no emite vales para ventas con promociones o vales aplicados. Se requiere revisión del importe neto por el encargado.')
+    if len(originals) != len(returns):
+        raise UserError('No repitas una misma línea original dentro de la devolución.')
+    locked = source.try_lock_for_update()
+    if len(locked) != len(source):
+        raise UserError('Otra caja está revisando esta venta. Espera y vuelve a intentar.')
+    # A real write on the source serializes concurrent returns under PostgreSQL.
+    source.write({'x_leyka_vale_revision': source.x_leyka_vale_revision + 1})
+    for line in returns:
+        original = line.refunded_orderline_id
+        if original.qty <= 0 or original.product_id == product or original.is_reward_line:
+            raise UserError('No se puede devolver una devolución o la emisión de otro vale.')
+        if line.product_id != original.product_id or abs(line.price_unit-original.price_unit) > 0.001 or abs(line.discount-original.discount) > 0.001 or set(line.tax_ids.ids) != set(original.tax_ids.ids):
+            raise UserError('Conserva el producto, precio, descuento e impuestos de la venta original.')
+        refunded = env['pos.order.line'].search([('refunded_orderline_id','=',original.id),('order_id.state','in',['paid','done','invoiced'])])
+        if -sum(refunded.mapped('qty')) > original.qty + 0.00001:
+            raise UserError('La cantidad supera lo que queda disponible para devolver de esta venta.')
+    expected = -sum(returns.mapped('price_subtotal_incl'))
+    if abs(credits.price_subtotal_incl - expected) > 0.01:
+        raise UserError('El importe del vale debe coincidir con los productos aceptados, incluyendo impuestos y descuentos originales.')
+]]></field>
+  </record>
+  <record id="guard_card" model="base.automation">
+    <field name="name">Leyka · Validar card</field>
+    <field name="model_id" ref="loyalty.model_loyalty_card"/>
+    <field name="trigger">on_create_or_write</field>
+  </record>
+  <record id="action_guard_card" model="ir.actions.server">
+    <field name="name">Leyka · Comprobar card</field>
+    <field name="model_id" ref="loyalty.model_loyalty_card"/>
+    <field name="base_automation_id" ref="guard_card"/>
+    <field name="state">code</field>
+    <field name="code"><![CDATA[program = env.ref('leyka_pos_vales.program_vales')
+product = env.ref('leyka_pos_vales.product_vale')
+for card in records.filtered(lambda c: c.program_id == program):
+    source = card.source_pos_order_id
+    if not source or source.state not in ['paid','done','invoiced'] or not source.x_leyka_vale_reviewed:
+        raise UserError('Un vale Leyka requiere una devolución aprobada y validada en el POS.')
+    if not source.x_leyka_vale_holder or not source.x_leyka_vale_phone or card.code != source.x_leyka_vale_code:
+        raise UserError('Faltan los datos del titular o el código no coincide con la devolución.')
+    if card.expiration_date:
+        raise UserError('Los vales Leyka se emiten sin caducidad.')
+    if card.company_id != source.company_id:
+        raise UserError('El vale y la devolución deben pertenecer a la misma empresa.')
+    amount = sum(source.lines.filtered(lambda l: l.product_id == product).mapped('price_subtotal_incl'))
+    if card.points < -0.00001 or card.points > amount + 0.00001:
+        raise UserError('El saldo del vale no puede ser negativo ni superar el importe emitido.')
+    if env['loyalty.card'].search_count([('program_id','=',program.id),('source_pos_order_id','=',source.id)]) > 1:
+        raise UserError('Esta devolución ya tiene un vale. Busca y reimprime el existente.')
+]]></field>
+  </record>
+</odoo>

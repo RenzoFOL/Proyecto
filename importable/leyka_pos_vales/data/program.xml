@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo><data noupdate="1">
+  <record id="product_vale" model="product.product">
+    <field name="name">Vale Leyka por devolución</field>
+    <field name="default_code">LEYKA-VALE-DEV</field>
+    <field name="type">service</field>
+    <field name="purchase_ok" eval="False"/>
+    <field name="available_in_pos" eval="True"/>
+    <field name="list_price">0</field>
+    <field name="taxes_id" eval="[(5, 0, 0)]"/>
+    <field name="supplier_taxes_id" eval="[(5, 0, 0)]"/>
+  </record>
+  <record id="program_vales" model="loyalty.program">
+    <field name="name">Vales Leyka · Cambios en tienda</field>
+    <field name="program_type">gift_card</field>
+    <field name="applies_on">future</field>
+    <field name="trigger">auto</field>
+    <field name="pos_ok" eval="True"/>
+    <field name="portal_visible" eval="False"/>
+    <field name="date_to" eval="False"/>
+    <field name="mail_template_id" eval="False"/>
+    <field name="communication_plan_ids" eval="[(5, 0, 0)]"/>
+  </record>
+  <record id="reward_vales" model="loyalty.reward">
+    <field name="program_id" ref="program_vales"/>
+    <field name="reward_type">discount</field>
+    <field name="discount_mode">per_point</field>
+    <field name="discount">1</field>
+    <field name="discount_applicability">order</field>
+    <field name="required_points">0.01</field>
+    <field name="description">Pago con vale Leyka</field>
+  </record>
+  <record id="rule_vales" model="loyalty.rule">
+    <field name="program_id" ref="program_vales"/>
+    <field name="reward_point_amount">1</field>
+    <field name="reward_point_mode">money</field>
+    <field name="reward_point_split" eval="True"/>
+    <field name="product_ids" eval="[(6, 0, [ref('product_vale')])]"/>
+  </record>
+</data></odoo>
