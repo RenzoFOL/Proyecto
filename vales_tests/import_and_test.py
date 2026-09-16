@@ -47,7 +47,7 @@ class TestImportableVales(TestPoSCommon):
 
     def returned(self, original=None, qty=1, **overrides):
         original = original or self.original()
-        amount = 100 * qty
+        amount = abs(original.lines.price_subtotal_incl) * qty / original.lines.qty
         meta = {
             'is_refund': False, 'x_leyka_vale_holder': 'Persona de prueba',
             'x_leyka_vale_phone': '2225238163', 'x_leyka_vale_reason': 'Pieza sin instalar, devolución aprobada',
@@ -56,7 +56,7 @@ class TestImportableVales(TestPoSCommon):
         }
         meta.update(overrides)
         data = self.create_ui_order_data([
-            {'product': self.product, 'quantity': -qty, 'refunded_orderline_id': original.lines.id},
+            {'product': self.product, 'quantity': -qty, 'discount': original.lines.discount, 'refunded_orderline_id': original.lines.id},
             {'product': self.credit, 'quantity': 1, 'price_unit': amount},
         ], pos_order_ui_args=meta, payments=[])
         return self.sync(data)
@@ -86,6 +86,15 @@ class TestImportableVales(TestPoSCommon):
         self.assertFalse(card.partner_id)
         self.assertEqual(source.lines.refunded_qty, 1)
         self.assertEqual(self.env['stock.quant']._get_available_quantity(self.product, self.config.picking_type_id.default_location_src_id), 9)
+
+    def test_original_tax_and_line_discount(self):
+        tax = self.env['account.tax'].create({'name': 'IVA test', 'amount': 16, 'amount_type': 'percent', 'type_tax_use': 'sale'})
+        self.product.taxes_id = tax
+        source = self.sync(self.create_ui_order_data([(self.product, 2, 10)]))
+        order = self.returned(source)
+        self.issue(order)
+        self.assertAlmostEqual(self.card(order).points, 104.40, places=2)
+        self.assertAlmostEqual(order.amount_total, 0, places=2)
 
     def test_repeat_confirmation_is_idempotent(self):
         order = self.returned()
