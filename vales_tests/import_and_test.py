@@ -27,7 +27,9 @@ class TestImportableVales(TestPoSCommon):
         super().setUp()
         self.config = self.basic_config
         self.program = self.env.ref('leyka_pos_vales.program_vales')
-        self.program.company_id = self.company
+        self.program.sudo().write({"company_id": self.company.id})
+        self.assertEqual(len(self.program.rule_ids), 1)
+        self.assertEqual(len(self.program.reward_ids), 1)
         self.credit = self.env.ref('leyka_pos_vales.product_vale')
         self.product = self.env['product.product'].create({
             'name': 'Pieza de prueba', 'list_price': 100, 'type': 'consu',

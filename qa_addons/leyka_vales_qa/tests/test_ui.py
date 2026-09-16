@@ -7,7 +7,7 @@ class TestValesUI(TestPointOfSaleHttpCommon):
     def test_issue_and_redeem_from_three_dots(self):
         program = self.env.ref('leyka_pos_vales.program_vales')
         self.env['loyalty.program'].search([('id', '!=', program.id)]).active = False
-        program.write({'active': True, 'company_id': self.env.company.id})
+        program.sudo().write({'active': True, 'company_id': self.env.company.id})
         credit = self.env.ref('leyka_pos_vales.product_vale')
         credit.write({'active': True, 'available_in_pos': True})
         self.env['product.product'].create({
