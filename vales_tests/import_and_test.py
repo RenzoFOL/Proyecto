@@ -57,7 +57,7 @@ class TestImportableVales(TestPoSCommon):
         meta.update(overrides)
         data = self.create_ui_order_data([
             {'product': self.product, 'quantity': -qty, 'discount': original.lines.discount, 'refunded_orderline_id': original.lines.id},
-            {'product': self.credit, 'quantity': 1, 'price_unit': amount},
+            {'product': self.credit, 'quantity': 1, 'price_unit': amount, 'price_subtotal': amount, 'price_subtotal_incl': amount},
         ], pos_order_ui_args=meta, payments=[])
         return self.sync(data)
 
@@ -95,6 +95,16 @@ class TestImportableVales(TestPoSCommon):
         self.issue(order)
         self.assertAlmostEqual(self.card(order).points, 104.40, places=2)
         self.assertAlmostEqual(order.amount_total, 0, places=2)
+
+    def test_full_purchase_total_with_tax_and_discount(self):
+        tax = self.env['account.tax'].create({'name': 'IVA full test', 'amount': 16, 'amount_type': 'percent', 'type_tax_use': 'sale'})
+        self.product.taxes_id = tax
+        source = self.sync(self.create_ui_order_data([(self.product, 2, 10)]))
+        order = self.returned(source, qty=2)
+        self.issue(order)
+        self.assertAlmostEqual(self.card(order).points, source.amount_total, places=2)
+        self.assertAlmostEqual(self.card(order).points, 208.80, places=2)
+        self.assertFalse(self.card(order).expiration_date)
 
     def test_repeat_confirmation_is_idempotent(self):
         order = self.returned()

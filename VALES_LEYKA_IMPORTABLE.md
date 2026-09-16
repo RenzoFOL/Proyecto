@@ -18,7 +18,7 @@ Un único módulo: `leyka_pos_vales`. El ZIP se importa desde Odoo; no se copia 
 4. El módulo añade el vale por el importe aceptado, conservando los precios, impuestos y descuentos por línea originales. El total queda en **cero**.
 5. Pulsa **Validar**, sin elegir efectivo ni Mercado Pago. Se registra la devolución nativa, vuelve la mercancía al inventario y se emite el código. Se intenta imprimir el comprobante con la impresora habitual del POS.
 
-Una compra de dos piezas de $100 puede dar un vale de $100 si se devuelve solo una. No se concede siempre el total de la venta: se concede el total de las piezas aceptadas.
+Al aceptar la devolución completa, el vale corresponde al total final de la compra, con IVA y descuentos originales incluidos. El código es aleatorio y no tiene fecha de caducidad. Si se acepta únicamente una parte de la compra, el importe corresponde a esa mercancía.
 
 ## Canjear, consultar y recuperar
 

@@ -167,7 +167,10 @@ export class ValesDialog extends Component {
     }
     async reprint(card) {
         await this.run(async () => {
-            const result = await this.pos.printer.print(ValeReceipt, { card, amount: card.points, reprint: true }, this.pos.printOptions);
+            const [fresh] = await this.pos.data.call("loyalty.card", "read", [[card.id], CARD_FIELDS]);
+            if (!fresh) throw new Error("El vale ya no está disponible.");
+            Object.assign(card, fresh);
+            const result = await this.pos.printer.print(ValeReceipt, { card: fresh, amount: fresh.points, reprint: true }, this.pos.printOptions);
             if (!result) throw new Error("La impresión no se completó. Puedes intentar reimprimir: no se creará otro vale.");
         });
     }
