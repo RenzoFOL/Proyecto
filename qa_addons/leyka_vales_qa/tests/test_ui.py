@@ -1,3 +1,4 @@
+from unittest import SkipTest
 from odoo.tests import tagged
 from odoo.addons.point_of_sale.tests.test_frontend import TestPointOfSaleHttpCommon
 
@@ -19,7 +20,10 @@ class TestValesUI(TestPointOfSaleHttpCommon):
             'available_in_pos': True, 'taxes_id': [(5, 0, 0)],
         })
         self.main_pos_config.with_user(self.pos_user).open_ui()
-        self.start_pos_tour('leyka_vales_issue_redeem', login='pos_user')
+        try:
+            self.start_pos_tour('leyka_vales_issue_redeem', login='pos_user')
+        except SkipTest as error:
+            self.fail(f'Browser test must run, not skip: {error}')
         card = self.env['loyalty.card'].search([('program_id', '=', program.id)])
         self.assertEqual(len(card), 1)
         self.assertEqual(card.points, 60)
